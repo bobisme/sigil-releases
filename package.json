@@ -1,0 +1,21 @@
+{
+  "name": "sigil-releases",
+  "version": "0.1.0",
+  "description": "sigil — autonomous evaluation and merge policy engine for agent-generated PRs",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bobisme/sigil-releases.git"
+  },
+  "license": "ELv2",
+  "dependencies": {
+    "@astrojs/starlight": "^0.38.3",
+    "astro": "^6.1.4"
+  }
+}

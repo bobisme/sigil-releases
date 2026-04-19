@@ -1,0 +1,85 @@
+/* Sigil — Starlight theming to match the landing-page design system. */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: dark;
+}
+
+:root,
+[data-theme='dark'] {
+  /* Base — ink & bone */
+  --sl-color-bg:             oklch(0.10 0.008 240);
+  --sl-color-bg-nav:         oklch(0.10 0.008 240 / 0.85);
+  --sl-color-bg-sidebar:     oklch(0.10 0.008 240);
+  --sl-color-bg-inline-code: oklch(0.13 0.009 240);
+
+  --sl-color-white:   oklch(0.96 0.008 80);
+  --sl-color-gray-1:  oklch(0.92 0.009 80);
+  --sl-color-gray-2:  oklch(0.84 0.010 80);
+  --sl-color-gray-3:  oklch(0.72 0.012 240);
+  --sl-color-gray-4:  oklch(0.45 0.013 240);
+  --sl-color-gray-5:  oklch(0.32 0.012 240);
+  --sl-color-gray-6:  oklch(0.22 0.011 240);
+  --sl-color-gray-7:  oklch(0.16 0.010 240);
+  --sl-color-black:   oklch(0.10 0.008 240);
+
+  --sl-color-text:        oklch(0.84 0.010 80);
+  --sl-color-text-accent: oklch(0.74 0.11 72);
+
+  /* Accent — aged brass / seal wax */
+  --sl-color-accent-low:  oklch(0.32 0.05 72);
+  --sl-color-accent:      oklch(0.74 0.11 72);
+  --sl-color-accent-high: oklch(0.88 0.09 72);
+
+  --sl-font:      'Inter', -apple-system, system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --sl-border-radius: 0px;
+
+  --sl-color-hairline:        oklch(0.22 0.011 240);
+  --sl-color-hairline-shade:  oklch(0.18 0.010 240);
+  --sl-color-hairline-light:  oklch(0.22 0.011 240);
+}
+
+html, body {
+  background: oklch(0.10 0.008 240);
+  color: oklch(0.84 0.010 80);
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+/* Editorial serif for headings */
+h1, h2, h3, h4, h5, h6,
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4 {
+  font-family: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: oklch(0.96 0.008 80);
+}
+
+.sl-markdown-content h1 { font-size: clamp(36px, 4.5vw, 52px); line-height: 1.05; }
+.sl-markdown-content h2 { font-size: clamp(28px, 3.2vw, 38px); line-height: 1.1; }
+.sl-markdown-content h3 { font-size: 22px; }
+
+/* Mono — editorial use of JetBrains Mono */
+code, pre, .sl-markdown-content code:not(pre code) {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* Accents on links */
+a { transition: color 120ms; }
+
+/* Selection */
+::selection { background: oklch(0.32 0.05 72); color: oklch(0.96 0.008 80); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: oklch(0.10 0.008 240); }
+::-webkit-scrollbar-thumb {
+  background: oklch(0.22 0.011 240);
+  border: 2px solid oklch(0.10 0.008 240);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover { background: oklch(0.32 0.012 240); }

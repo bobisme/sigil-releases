@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 40" fill="none">
+  <g transform="translate(4 4)" stroke="oklch(0.74 0.11 72)" stroke-width="0.8" fill="none">
+    <circle cx="16" cy="16" r="15" opacity="0.9"/>
+    <circle cx="16" cy="16" r="13" stroke-width="0.4" opacity="0.4"/>
+    <path d="M16 5 L26 23 L6 23 Z" stroke-width="0.9"/>
+    <circle cx="16" cy="17" r="1.5" stroke-width="0.7"/>
+    <circle cx="16" cy="17" r="0.5" fill="oklch(0.74 0.11 72)" stroke="none"/>
+  </g>
+  <text x="44" y="27" font-family="'Instrument Serif', 'Iowan Old Style', Georgia, serif" font-size="26" fill="oklch(0.96 0.008 80)" letter-spacing="0.5">sigil</text>
+</svg>

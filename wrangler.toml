@@ -1,0 +1,2 @@
+name = "sigil"
+pages_build_output_dir = "dist/"
