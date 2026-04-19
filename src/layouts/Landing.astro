@@ -414,6 +414,85 @@ const { title } = Astro.props;
     position: relative;
   }
   .eval-flow svg { background: var(--ink-850); display: block; }
+
+  /* =========================================================
+     PROTOCOL STRIP — five-card lifecycle
+     ========================================================= */
+  .protocol-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border: var(--rule);
+  }
+  .protocol-step {
+    padding: 28px 22px 26px;
+    border-left: var(--rule);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .protocol-step:first-child { border-left: none; }
+  .protocol-step .step-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .protocol-step .step-num {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--seal);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--seal);
+    line-height: 1;
+  }
+  .protocol-step .step-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--bone);
+    text-transform: uppercase;
+  }
+  .protocol-step .step-actor {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--seal);
+    margin-bottom: 14px;
+  }
+  .protocol-step .step-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 24px;
+    line-height: 1.15;
+    color: var(--bone);
+    margin-bottom: 14px;
+  }
+  .protocol-step .step-note {
+    color: var(--ink-300);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .protocol-step .step-note .mono {
+    color: var(--bone);
+    font-size: 0.92em;
+  }
+  .protocol-step .step-loop {
+    position: absolute;
+    top: 24px;
+    right: 20px;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--seal);
+    line-height: 1;
+    cursor: default;
+  }
   .flow-legend {
     display: flex;
     gap: 32px;
@@ -947,9 +1026,10 @@ const { title } = Astro.props;
     .inv-wall,
     .marks-sheet,
     .lua-callouts,
+    .protocol-strip,
     .decisions { grid-template-columns: 1fr; }
-    .chamber, .mark-cell, .callout-card, .decision { border-left: none; border-top: var(--rule); }
-    .chamber:first-child, .mark-cell:first-child, .callout-card:first-child, .decision:first-child { border-top: none; }
+    .chamber, .mark-cell, .callout-card, .protocol-step, .decision { border-left: none; border-top: var(--rule); }
+    .chamber:first-child, .mark-cell:first-child, .callout-card:first-child, .protocol-step:first-child, .decision:first-child { border-top: none; }
     .inv-card { border-left: none; border-top: var(--rule); }
     .inv-card:first-child { border-top: none; }
     .dark-factory { grid-template-columns: 1fr; }

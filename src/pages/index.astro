@@ -113,7 +113,7 @@ const callouts: Record<number, { id: string; label: string; api: string; note: s
   11: { id: 'A', label: 'generators',        api: 'sigil.gen.*',     note: 'Deterministic value generators seeded from the scenario RNG. Emails, UUIDs, ints, strings — every call is reproducible across runs, so property tests, fuzzers, and replays all share one seed chain.' },
   12: { id: 'B', label: 'env access',        api: 'sigil.env()',     note: 'Typed access to an evaluator-scoped secret vault. Values are read from the locked environment, never inlined into the scenario source, and never echoed into feedback or the ledger.' },
   24: { id: 'D', label: 'agent instruction', api: 'sigil.intent',    note: 'Plain-English objective in the `---` block. The LLM drives the declared capabilities via tool-use; typed capture fields become the completion schema, so the agent must return structured values.' },
-  36: { id: 'C', label: 'power assertions',  api: 'expect',          note: 'Comparisons inside expect are rewritten to capture both sides. On failure, the renderer prints an Ariadne code frame with the value each sub-expression resolved to — this line is the one that fails in §03.' },
+  36: { id: 'C', label: 'power assertions',  api: 'expect',          note: 'Comparisons inside expect are rewritten to capture both sides. On failure, the renderer prints an Ariadne code frame with the value each sub-expression resolved to — this line is the one that fails in §04.' },
   40: { id: 'E', label: 'browser automation',api: 'sigil.browser',   note: 'Getters (text, url, visible) return strings; actions (open, click, fill, wait) return nil. Sessions auto-isolate per scenario ID — no cookie bleed between parallel runs.' },
   46: { id: 'F', label: 'http calls',        api: 'sigil.get',       note: 'Typed HTTP against the deployed service. Request and response metadata, headers, and JSON bodies are surfaced structured — not as raw strings you have to parse back out.' },
   54: { id: 'G', label: 'property testing',  api: 'invariant',       note: 'Generate N cases from the declared generators, run the check against each, and shrink counter-examples on failure. A claim about the service, not a sequence of steps.' },
@@ -287,7 +287,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <span class="brand-sub">v0.4 · merge trust</span>
       </a>
       <div class="top-nav-links">
-        <a href="#flow">flow</a>
+        <a href="#protocol">protocol</a>
         <a href="#scenarios">scenarios</a>
         <a href="#trust">trust</a>
         <a href="#invariants">invariants</a>
@@ -308,15 +308,15 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
 
     <div class="hero-grid">
       <div class="hero-lede-col">
-        <div class="caps-seal" style="margin-bottom:20px">THE MERGE TRUST LAYER</div>
-        <h1 class="hero-title">Sealed evidence for <em>every merge decision</em> an agent asks you to make.</h1>
+        <div class="caps-seal" style="margin-bottom:20px">FROM SPEC TO SEAL</div>
+        <h1 class="hero-title">A markdown spec becomes scenarios. Scenarios become a <em>signed decision</em>.</h1>
         <p class="hero-lede">
-          Sigil is an <strong>autonomous evaluation and merge policy engine</strong> for agent-generated pull requests. It deploys PR and baseline to ephemeral environments, runs scenarios the agent never sees, and emits one of three decisions — <strong>ALLOW</strong>, <strong>REVIEW</strong>, or <strong>BLOCK</strong> — each with reproducible, signed provenance.
+          A human writes the intent in <strong>markdown</strong>. Sigil compiles it into Lua <strong>scenarios</strong> — a visible half the coding agent iterates against, and an age-encrypted half it never sees. The agent implements, pushes, and converges against <strong>opaque feedback</strong>. Sigil scores the result and emits one of three decisions — <strong>ALLOW</strong>, <strong>REVIEW</strong>, or <strong>BLOCK</strong> — each with reproducible, signed provenance.
         </p>
         <div class="hero-cta-row">
           <a href="/quickstart/" class="hero-cta-primary">Read the docs →</a>
-          <a href="#scenarios" class="hero-cta-secondary">See a scenario</a>
-          <a href="#flow" class="hero-cta-ghost">How it decides ↓</a>
+          <a href="#protocol" class="hero-cta-secondary">See the protocol</a>
+          <a href="#scenarios" class="hero-cta-ghost">Scenario DSL ↓</a>
         </div>
 
         <div class="decisions">
@@ -371,15 +371,83 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
   </header>
 
   <!-- ============================================================
-       §01 — EVAL PIPELINE
+       §01 — LIFECYCLE (five-card strip)
+       ============================================================ -->
+  <section class="section" id="protocol">
+    <div class="section-head">
+      <div class="section-num"><span>§</span> 01 · LIFECYCLE</div>
+      <div>
+        <h2 class="section-title">Five steps from <em>spec to seal</em>.</h2>
+        <p class="section-lede">
+          A human writes the intent. Sigil compiles it into scenarios. The agent implements. Sigil scores and the agent iterates against opaque feedback. A signed decision closes the loop.
+        </p>
+      </div>
+    </div>
+
+    <div class="protocol-strip">
+      <div class="protocol-step">
+        <div class="step-head">
+          <span class="step-num">01</span>
+          <span class="step-label">SPEC</span>
+        </div>
+        <div class="step-actor">human</div>
+        <div class="step-title">Write the intent</div>
+        <div class="step-note">A person writes the spec in markdown — acceptance criteria, invariants, edge cases. One source of truth for what "done" means.</div>
+      </div>
+
+      <div class="protocol-step">
+        <div class="step-head">
+          <span class="step-num">02</span>
+          <span class="step-label">GENERATE</span>
+        </div>
+        <div class="step-actor">sigil</div>
+        <div class="step-title">Compile to scenarios</div>
+        <div class="step-note"><span class="mono">sigil scenario generate</span> turns the spec into Lua scenarios — a visible half, and an age-encrypted holdout the agent will never see.</div>
+      </div>
+
+      <div class="protocol-step">
+        <div class="step-head">
+          <span class="step-num">03</span>
+          <span class="step-label">IMPLEMENT</span>
+        </div>
+        <div class="step-actor">agent</div>
+        <div class="step-title">Write the patch</div>
+        <div class="step-note">The coding agent reads the spec and the visible scenarios, writes code, runs the visible scenarios locally, and opens a PR.</div>
+      </div>
+
+      <div class="protocol-step">
+        <span class="step-loop" title="Loops until converged or budget exceeded">&#8634;</span>
+        <div class="step-head">
+          <span class="step-num">04</span>
+          <span class="step-label">ITERATE</span>
+        </div>
+        <div class="step-actor">sigil &harr; agent</div>
+        <div class="step-title">Opaque feedback</div>
+        <div class="step-note">Sigil runs PR and baseline through every scenario. The agent sees only <span class="mono">step_3: fail</span> — no values, no source — and retries until it converges.</div>
+      </div>
+
+      <div class="protocol-step">
+        <div class="step-head">
+          <span class="step-num">05</span>
+          <span class="step-label">DECIDE</span>
+        </div>
+        <div class="step-actor">sigil &rarr; human</div>
+        <div class="step-title">Seal the merge</div>
+        <div class="step-note"><span class="mono" style="color:var(--allow)">ALLOW</span> · <span class="mono" style="color:var(--review)">REVIEW</span> · <span class="mono" style="color:var(--block)">BLOCK</span> — gated by the trust ladder. AUTO merges; REVIEW goes to a human; BLOCK halts the queue.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       §02 — EVAL PIPELINE
        ============================================================ -->
   <section class="section" id="flow">
     <div class="section-head">
-      <div class="section-num"><span>§</span> 01 · EVAL PIPELINE</div>
+      <div class="section-num"><span>§</span> 02 · EVAL PIPELINE</div>
       <div>
-        <h2 class="section-title">PR ref in. <em>Signed decision</em> out. Nothing between that the agent can read.</h2>
+        <h2 class="section-title">One step of the protocol, <em>up close</em>. PR ref in, signed decision out.</h2>
         <p class="section-lede">
-          <span class="mono mono-seal">sigil eval &lt;pr-ref&gt;</span> resolves the PR to an image digest, decrypts the scenario bundle, deploys PR and baseline side-by-side, runs three tiers of Lua scenarios against both, computes a baseline-relative satisfaction score, appends <span class="mono">eval.complete</span> and <span class="mono">eval.decision</span> to the git-backed ledger, and emits feedback stripped of any content the authoring agent is not permitted to see.
+          <span class="mono mono-seal">sigil eval &lt;pr-ref&gt;</span> is the mechanics of steps 04 and 05 above. It resolves the PR to an image digest, decrypts the scenario bundle, deploys PR and baseline side-by-side, runs three tiers of Lua scenarios against both, computes a baseline-relative satisfaction score, appends <span class="mono">eval.complete</span> and <span class="mono">eval.decision</span> to the git-backed ledger, and emits feedback stripped of any content the authoring agent is not permitted to see.
         </p>
       </div>
     </div>
@@ -426,7 +494,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         </g>
 
         <rect x="20" y="20" width={W - 40} height={H - 40} fill="none" stroke="var(--ink-800)" stroke-width="0.5" />
-        <text x="30" y="38" fill="var(--ink-500)" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.5">SIGIL · EVAL PIPELINE · FIG.01</text>
+        <text x="30" y="38" fill="var(--ink-500)" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.5">SIGIL · EVAL PIPELINE · FIG.02</text>
         <text x={W - 30} y="38" fill="var(--ink-500)" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.5" text-anchor="end">PROVENANCE TUPLE: 6-FIELD</text>
       </svg>
     </div>
@@ -435,7 +503,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
       <span class="item"><span class="dot" style="background:var(--allow)"></span> ALLOW path</span>
       <span class="item"><span class="dot" style="background:var(--review)"></span> REVIEW path</span>
       <span class="item"><span class="dot" style="background:var(--block)"></span> BLOCK path</span>
-      <span class="item" style="margin-left:auto;color:var(--ink-500)">Fig. 01 · baseline-relative scoring</span>
+      <span class="item" style="margin-left:auto;color:var(--ink-500)">Fig. 02 · baseline-relative scoring</span>
     </div>
 
     <div class="prov-strip">
@@ -449,11 +517,11 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
   </section>
 
   <!-- ============================================================
-       §02 — SCENARIO DSL
+       §03 — SCENARIO DSL
        ============================================================ -->
   <section class="section" id="scenarios">
     <div class="section-head">
-      <div class="section-num"><span>§</span> 02 · SCENARIO DSL</div>
+      <div class="section-num"><span>§</span> 03 · SCENARIO DSL</div>
       <div>
         <h2 class="section-title">Scenarios are <em>plain Lua</em>. Power assertions, rubric doc-comments, property tests.</h2>
         <p class="section-lede">
@@ -508,11 +576,11 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
   </section>
 
   <!-- ============================================================
-       §03 — EXPECT FAILURES
+       §04 — EXPECT FAILURES
        ============================================================ -->
   <section class="section" id="failures">
     <div class="section-head">
-      <div class="section-num"><span>§</span> 03 · EXPECT FAILURES</div>
+      <div class="section-num"><span>§</span> 04 · EXPECT FAILURES</div>
       <div>
         <h2 class="section-title">Rich evidence for the operator. <em>Opaque step labels</em> for the agent.</h2>
         <p class="section-lede">
@@ -553,11 +621,11 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
   </section>
 
   <!-- ============================================================
-       §04 — EARNED AUTONOMY
+       §05 — EARNED AUTONOMY
        ============================================================ -->
   <section class="section" id="trust">
     <div class="section-head">
-      <div class="section-num"><span>§</span> 04 · EARNED AUTONOMY</div>
+      <div class="section-num"><span>§</span> 05 · EARNED AUTONOMY</div>
       <div>
         <h2 class="section-title">Trust is <em>computed</em>, not configured. Services climb one tier at a time.</h2>
         <p class="section-lede">
@@ -594,11 +662,11 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
   </section>
 
   <!-- ============================================================
-       §05 — FOUR INVARIANTS
+       §06 — FOUR INVARIANTS
        ============================================================ -->
   <section class="section" id="invariants">
     <div class="section-head">
-      <div class="section-num"><span>§</span> 05 · FOUR INVARIANTS</div>
+      <div class="section-num"><span>§</span> 06 · FOUR INVARIANTS</div>
       <div>
         <h2 class="section-title">Non-negotiable. Present in <em>every decision</em> the system emits.</h2>
         <p class="section-lede">
@@ -626,11 +694,11 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
   </section>
 
   <!-- ============================================================
-       §06 — WHY DARK FACTORY
+       §07 — WHY DARK FACTORY
        ============================================================ -->
   <section class="section" id="dark-factory">
     <div class="section-head">
-      <div class="section-num"><span>§</span> 06 · WHY DARK FACTORY</div>
+      <div class="section-num"><span>§</span> 07 · WHY DARK FACTORY</div>
       <div>
         <h2 class="section-title">A benchmark the agent can read <em>is a benchmark the agent can game.</em></h2>
       </div>
@@ -646,7 +714,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
 
       <div class="df-diagram">
         <div class="df-diagram-title">
-          <span>ISOLATION WALL · FIG.02</span>
+          <span>ISOLATION WALL · FIG.03</span>
           <span style="color:var(--seal)">feedback ∩ holdout = ∅</span>
         </div>
         <svg viewBox="0 0 480 340" width="100%">
