@@ -23,7 +23,7 @@ Sigil is in private beta. Packaged installers (Homebrew tap, curl installer, Git
 
 ## Development
 
-This repo hosts the documentation site at [sigil.cx](https://sigil.cx).
+This repo hosts the documentation site at [runsigil.com](https://runsigil.com).
 
 ```sh
 bun install
@@ -31,7 +31,7 @@ bun run dev         # dev server at http://localhost:4321
 bun run build
 ```
 
-Full documentation at [sigil.cx](https://sigil.cx).
+Full documentation at [runsigil.com](https://runsigil.com).
 
 ## License
 

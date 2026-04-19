@@ -2,4 +2,4 @@
 
 ## Unreleased
 
-- Initial documentation site scaffolded at sigil.cx.
+- Initial documentation site scaffolded at runsigil.com.

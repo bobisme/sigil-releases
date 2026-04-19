@@ -12,7 +12,7 @@ const { title } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content="Sigil is an autonomous evaluation and merge policy engine for agent-generated pull requests. Dark-factory evaluation, earned autonomy, sealed evidence." />
-    <link rel="canonical" href="https://sigil.cx" />
+    <link rel="canonical" href="https://runsigil.com" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -171,6 +171,28 @@ const { title } = Astro.props;
     transition: all 120ms;
   }
   .top-nav-cta:hover { background: var(--seal-faint); color: var(--bone) !important; }
+
+  /* =========================================================
+     PAGE HEADER — used on /how/ and other deep-dive pages
+     ========================================================= */
+  .page-header {
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 56px var(--gutter) 24px;
+  }
+  .page-header .caps-seal {
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+  .page-header-title {
+    font-family: var(--font-display);
+    font-size: clamp(44px, 6vw, 72px);
+    line-height: 1.02;
+    color: var(--bone);
+    letter-spacing: -0.02em;
+    font-weight: 400;
+    margin: 0;
+  }
 
   /* =========================================================
      HERO
@@ -493,6 +515,46 @@ const { title } = Astro.props;
     line-height: 1;
     cursor: default;
   }
+
+  /* Stacked variant — used on landing where horizontal space
+     per card would otherwise be cramped. Aligns left/right grid
+     columns with the preceding .section-head (200px 1fr, 32px gap). */
+  .protocol-strip.is-stacked {
+    grid-template-columns: 1fr;
+    border: none;
+  }
+  .protocol-strip.is-stacked .protocol-step {
+    border-left: none;
+    border-top: var(--rule);
+    padding: 36px 0 38px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 10px 32px;
+    align-items: baseline;
+  }
+  .protocol-strip.is-stacked .step-head {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
+  }
+  .protocol-strip.is-stacked .step-actor {
+    grid-column: 1;
+    grid-row: 2;
+    margin-bottom: 0;
+  }
+  .protocol-strip.is-stacked .step-title {
+    grid-column: 2;
+    grid-row: 1;
+    margin-bottom: 4px;
+    font-size: 28px;
+  }
+  .protocol-strip.is-stacked .step-note {
+    grid-column: 2;
+    grid-row: 2;
+    max-width: 720px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
   .flow-legend {
     display: flex;
     gap: 32px;
@@ -506,6 +568,180 @@ const { title } = Astro.props;
   }
   .flow-legend .item { display: flex; align-items: center; gap: 8px; }
   .flow-legend .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* =========================================================
+     MARKDOWN SPEC BLOCK
+     ========================================================= */
+  .md-block {
+    border: var(--rule);
+    background: var(--ink-850);
+  }
+  .md-header {
+    padding: 14px 20px;
+    border-bottom: var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .md-file { font-family: var(--font-mono); font-size: 13px; }
+  .md-meta { display: flex; align-items: center; gap: 12px; }
+  .md-body { padding: 24px 0; overflow-x: auto; }
+  .md-pre {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-200);
+    padding: 0 20px;
+    min-width: 620px;
+  }
+  .md-line {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+  }
+  .md-ln {
+    color: var(--ink-600);
+    font-size: 11px;
+    user-select: none;
+    min-width: 28px;
+    text-align: right;
+  }
+  .md-content { flex: 1; white-space: pre-wrap; word-break: break-word; }
+
+  /* Line-type styling */
+  .md-frontmatter-delim .md-content { color: var(--ink-500); }
+  .md-frontmatter .md-content { color: var(--ink-400); font-style: italic; }
+  .md-heading .md-content { color: var(--seal); font-weight: 600; }
+  .md-h1 .md-content { color: var(--bone); }
+  .md-hr .md-content { color: var(--ink-500); }
+  .md-table .md-content { color: var(--ink-200); }
+  .md-list .md-content { color: var(--ink-200); }
+  .md-plain .md-content { color: var(--ink-200); }
+  .md-blank .md-content::before { content: ' '; }
+
+  /* Inline */
+  .md-content .md-code {
+    color: var(--seal);
+    background: var(--ink-900);
+    padding: 0 4px;
+    border: var(--rule-faint);
+  }
+  .md-content .md-bold {
+    color: var(--bone);
+    font-weight: 600;
+  }
+
+  /* Generate command strip */
+  .md-generate {
+    padding: 18px 20px;
+    border-top: var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .md-generate-cmd {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--bone);
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  .md-generate-prompt {
+    color: var(--seal);
+    font-weight: 600;
+  }
+  .md-generate-note {
+    color: var(--ink-400);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+
+  /* =========================================================
+     COMMAND STACK — §05 THE LOOP
+     ========================================================= */
+  .cmd-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  .cmd-block {
+    border: var(--rule);
+    background: var(--ink-850);
+  }
+  .cmd-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: var(--rule);
+    flex-wrap: wrap;
+  }
+  .cmd-chip {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--seal);
+    border: var(--rule-seal);
+    padding: 3px 8px;
+    text-transform: uppercase;
+  }
+  .cmd-actor {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--seal);
+    text-transform: uppercase;
+  }
+  .cmd-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--bone);
+    margin-left: auto;
+  }
+  .cmd-caption {
+    padding: 14px 20px 0;
+    color: var(--ink-300);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 820px;
+  }
+  .cmd-caption em { color: var(--bone); font-style: italic; }
+  .cmd-caption .mono { color: var(--seal); background: var(--ink-900); padding: 0 4px; border: var(--rule-faint); font-size: 0.9em; }
+  .cmd-output {
+    margin: 16px 20px 22px;
+    padding: 16px 18px;
+    background: var(--ink-900);
+    border: var(--rule-faint);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink-200);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* Terminal output token colors */
+  .t-arrow  { color: var(--seal); }
+  .t-seal   { color: var(--seal); font-weight: 600; }
+  .t-strong { color: var(--bone); }
+  .t-meta   { color: var(--ink-500); }
+  .t-dim    { color: var(--ink-500); }
+  .t-ok     { color: var(--allow); }
+  .t-fail   { color: var(--block); }
+  .t-warn   { color: var(--review); }
+
+  @media (max-width: 900px) {
+    .cmd-title { margin-left: 0; }
+    .cmd-output { margin: 12px; }
+  }
 
   /* =========================================================
      LUA BLOCK
@@ -958,6 +1194,108 @@ const { title } = Astro.props;
   }
 
   /* =========================================================
+     LANDING — PAIN / BENEFIT / AUDIENCE / CTA
+     ========================================================= */
+  .wall-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: var(--rule);
+  }
+  .wall-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border: var(--rule);
+  }
+  .wall-cell {
+    padding: 40px 36px 36px;
+    border-left: var(--rule);
+    position: relative;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+  }
+  .wall-cell:first-child { border-left: none; }
+
+  .wall-num {
+    font-family: var(--font-display);
+    font-size: 44px;
+    color: var(--seal);
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .wall-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+    margin-bottom: 16px;
+  }
+  .wall-headline {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 24px;
+    color: var(--bone);
+    line-height: 1.2;
+    margin-bottom: 18px;
+    max-width: 360px;
+  }
+  .wall-2 .wall-headline {
+    font-size: 30px;
+    max-width: 440px;
+  }
+  .wall-note {
+    color: var(--ink-300);
+    font-size: 14px;
+    line-height: 1.6;
+    flex: 1;
+  }
+  .wall-note em { color: var(--bone); font-style: italic; }
+  .wall-note .mono { color: var(--seal); }
+
+  /* Final CTA strip */
+  .landing-cta {
+    padding: 88px var(--gutter);
+    max-width: var(--page-max);
+    margin: 0 auto;
+    border-top: var(--rule);
+    text-align: center;
+  }
+  .landing-cta .caps-seal { margin-bottom: 20px; display: inline-block; }
+  .landing-cta-headline {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.05;
+    color: var(--bone);
+    letter-spacing: -0.015em;
+    margin-bottom: 20px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    font-weight: 400;
+  }
+  .landing-cta-headline em { font-style: italic; color: var(--seal); }
+  .landing-cta-lede {
+    color: var(--ink-300);
+    font-size: 17px;
+    line-height: 1.6;
+    max-width: 620px;
+    margin: 0 auto 40px;
+  }
+  .landing-cta-row {
+    display: inline-flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  @media (max-width: 900px) {
+    .wall-3, .wall-2 { grid-template-columns: 1fr; }
+    .wall-cell { border-left: none; border-top: var(--rule); min-height: 0; }
+    .wall-cell:first-child { border-top: none; }
+  }
+
+  /* =========================================================
      FOOTER
      ========================================================= */
   .footer {
@@ -1030,6 +1368,13 @@ const { title } = Astro.props;
     .decisions { grid-template-columns: 1fr; }
     .chamber, .mark-cell, .callout-card, .protocol-step, .decision { border-left: none; border-top: var(--rule); }
     .chamber:first-child, .mark-cell:first-child, .callout-card:first-child, .protocol-step:first-child, .decision:first-child { border-top: none; }
+    .protocol-strip.is-stacked .protocol-step {
+      display: flex;
+      flex-direction: column;
+      padding: 28px 0 26px;
+    }
+    .protocol-strip.is-stacked .step-actor { margin-bottom: 14px; }
+    .protocol-strip.is-stacked .step-title { margin-bottom: 14px; font-size: 24px; }
     .inv-card { border-left: none; border-top: var(--rule); }
     .inv-card:first-child { border-top: none; }
     .dark-factory { grid-template-columns: 1fr; }

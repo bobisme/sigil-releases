@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
-  site: 'https://sigil.cx',
+  site: 'https://runsigil.com',
   integrations: [
     starlight({
       title: 'sigil',
@@ -11,13 +11,7 @@ export default defineConfig({
         replacesTitle: true,
       },
       favicon: '/favicon.svg',
-      social: [
-        {
-          icon: 'github',
-          label: 'GitHub',
-          href: 'https://github.com/bobisme/sigil-releases',
-        },
-      ],
+      social: [],
       sidebar: [
         {
           label: 'Getting Started',
