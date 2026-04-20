@@ -1,0 +1,51 @@
+name: bump version on sigil release
+
+# Fires when bobisme/sigil emits a `sigil-released` repository_dispatch
+# event (from .github/workflows/notify-releases.yml in that repo).
+# Also exposes manual dispatch for retries / backfills.
+
+on:
+  repository_dispatch:
+    types: [sigil-released]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Sigil version (e.g. 0.20.0 or v0.20.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          VERSION="${{ github.event.client_payload.version || github.event.inputs.version }}"
+          VERSION="${VERSION#v}"
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::No version supplied in dispatch payload or workflow input." >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version strings
+        run: |
+          chmod +x scripts/bump-version.sh
+          ./scripts/bump-version.sh "${{ steps.version.outputs.version }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No version changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: bump sigil version to ${{ steps.version.outputs.version }}"
+          git push
