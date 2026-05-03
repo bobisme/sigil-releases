@@ -5,8 +5,8 @@ description: Wire sigil into GitHub Actions, status checks, and the merge queue.
 
 Sigil ships with a first-class GitHub integration via the `sigil ci` command. It evaluates a PR, posts a status check, optionally comments, and — at `AUTO` trust — triggers the merge queue.
 
-:::caution[Unreleased — private beta]
-The workflow example below references `https://runsigil.com/install.sh`, which is a placeholder — the curl installer does not yet exist. Until a public release, the `Install sigil` step must fetch a pre-built binary from the private beta or build from source in CI. See [Installation](/installation/).
+:::note[Installer]
+The workflow example below installs the latest published Sigil binary through `https://runsigil.com/install.sh`, which redirects to the public release artifact.
 :::
 
 ## The CI loop

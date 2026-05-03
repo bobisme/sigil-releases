@@ -19,7 +19,9 @@ sigil ci owner/repo#42 --service api       # all-in-one with GitHub integration
 
 ## Install
 
-Sigil is in private beta. Packaged installers (Homebrew tap, curl installer, GitHub release tarballs) are planned but not yet live. For now, contact the maintainer directly or build from source.
+```sh
+curl -fsSL https://runsigil.com/install.sh | sh
+```
 
 ## Development
 

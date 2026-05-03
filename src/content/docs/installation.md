@@ -1,10 +1,22 @@
 ---
 title: Installation
-description: Sigil is in private beta.
+description: Install the latest Sigil release.
 ---
 
-:::caution[Private beta]
-Sigil has not shipped a public release. There's no installer, no Homebrew tap, and no release tarballs yet.
-:::
+## Shell installer
 
-Public installation instructions will land here when a release is ready.
+```sh
+curl -fsSL https://runsigil.com/install.sh | sh
+```
+
+## Homebrew
+
+```sh
+brew install bobisme/tap/sigil
+```
+
+## Release artifacts
+
+Prebuilt archives and checksums are published at the public release repository:
+
+https://github.com/bobisme/sigil-releases/releases/latest

@@ -5,10 +5,6 @@ description: Gate your first agent-generated PR in under ten minutes.
 
 Sigil sits between your coding agent and your merge queue. It deploys the PR and a baseline to ephemeral Docker environments, runs sealed Lua scenarios against both, and emits an auditable decision.
 
-:::caution[Unreleased — private beta]
-Sigil is not yet publicly released. To follow this quickstart you need a `sigil` binary, which currently means either being in the private beta or building from source. See [Installation](/installation/).
-:::
-
 ## Prerequisites
 
 - A `sigil` binary on your `PATH` — see [Installation](/installation/)
