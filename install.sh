@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-curl -fsSL https://github.com/bobisme/sigil-releases/releases/latest/download/sigil-installer.sh | sh
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec sh "$SCRIPT_DIR/public/install.sh" "$@"

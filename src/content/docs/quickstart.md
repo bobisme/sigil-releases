@@ -7,7 +7,11 @@ Sigil sits between your coding agent and your merge queue. It deploys the PR and
 
 ## Prerequisites
 
-- A `sigil` binary on your `PATH` — see [Installation](/installation/)
+- A `sigil` binary on your `PATH`:
+
+  ```sh
+  curl -fsSL https://runsigil.com/install.sh | sh
+  ```
 - Docker + docker compose
 - A service with a `docker-compose.yml` you can point Sigil at
 - At least one LLM provider configured for judge scenarios (Ollama, OpenAI, Anthropic, or OpenRouter)
