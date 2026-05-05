@@ -1,0 +1,61 @@
+---
+const { toc } = Astro.locals.starlightRoute;
+---
+
+{
+  toc && (
+    <nav class="custom-toc" aria-label={Astro.locals.t('tableOfContents.onThisPage')}>
+      <p class="toc-label">{Astro.locals.t('tableOfContents.onThisPage')}</p>
+      <ul>
+        {toc.items.map((item) => (
+          <li>
+            <a href={`#${item.slug}`}>{item.text}</a>
+            {item.children?.length ? (
+              <ul>
+                {item.children.map((child) => (
+                  <li>
+                    <a href={`#${child.slug}`}>{child.text}</a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<style>
+  @layer starlight.core {
+    .custom-toc {
+      font-size: var(--sl-text-xs);
+      padding: 1rem;
+    }
+    .toc-label {
+      color: var(--sl-color-white);
+      font-size: var(--sl-text-xs);
+      font-weight: 600;
+      margin: 0 0 0.75rem;
+    }
+    .custom-toc ul {
+      list-style: none;
+      padding-inline-start: 0;
+      margin: 0;
+    }
+    .custom-toc ul ul {
+      padding-inline-start: 1rem;
+      margin-top: 0.25rem;
+    }
+    .custom-toc li + li {
+      margin-top: 0.35rem;
+    }
+    .custom-toc a {
+      color: var(--sl-color-gray-3);
+      text-decoration: none;
+    }
+    .custom-toc a:hover {
+      color: var(--sl-color-white);
+    }
+  }
+</style>

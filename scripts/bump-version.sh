@@ -11,8 +11,8 @@ VERSION="${1:?usage: bump-version.sh <version>}"
 VERSION="${VERSION#v}"
 MAJOR_MINOR="$(echo "$VERSION" | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')"
 
-# Nav brand-sub — "v0.4 · private beta" / "v0.4 · merge trust"
-sed -i -E "s#v[0-9]+\.[0-9]+( · (private beta|merge trust))#v${MAJOR_MINOR}\1#g" \
+# Nav brand-sub — "v0.4 · released" / "v0.4 · merge trust"
+sed -i -E "s#v[0-9]+\.[0-9]+( · (released|merge trust))#v${MAJOR_MINOR}\1#g" \
   src/pages/index.astro \
   src/pages/how.astro
 

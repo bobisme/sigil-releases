@@ -1,0 +1,78 @@
+---
+import Layout from '../layouts/Landing.astro';
+import { SITE } from '../lib/site';
+
+const description = 'Sigil privacy and data-flow notes for installer, documentation, CI evaluation, analytics, retention, and support contact.';
+---
+
+<Layout title="Sigil Privacy · Data flow and contact" description={description} canonicalPath="/privacy/">
+  <nav class="top-nav">
+    <div class="top-nav-inner">
+      <a href="/" class="brand"><span class="brand-word">sigil</span><span class="brand-sub">privacy</span></a>
+      <div class="top-nav-links">
+        <a href="/quickstart/">docs</a>
+        <a href="/installation/">install</a>
+        <a href="/about/">about</a>
+        <a href="/contact/" class="top-nav-cta">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="page-header">
+      <div class="caps-seal">PRIVACY</div>
+      <h1 class="page-header-title">Data flow should be boring and inspectable.</h1>
+      <p class="hero-lede" style="margin-top:20px;max-width:820px">
+        Sigil evaluates code in your local or CI environment. This page describes the public website and installer surfaces, plus the product data flows teams should review before gating PRs.
+      </p>
+    </header>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-num"><span>§</span> 01 · WEBSITE</div>
+        <div>
+          <h2 class="section-title">Website analytics are limited to product-funnel events.</h2>
+          <p class="section-lede">
+            The site records page, install-copy, contact, quickstart, and docs-search events only when analytics is configured. The intended properties are route, referrer, CTA, search query, result count, and clicked result URL. Do not send secrets through search or contact forms.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-num"><span>§</span> 02 · INSTALLER</div>
+        <div>
+          <h2 class="section-title">The shell installer delegates to GitHub release artifacts.</h2>
+          <p class="section-lede">
+            <code>https://runsigil.com/install.sh</code> downloads the latest public installer from <a href={SITE.releases} style="color:var(--seal)">GitHub releases</a>. Use the installation docs for supported platforms, PATH behavior, verification, pinned versions, and uninstall notes.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-num"><span>§</span> 03 · PRODUCT</div>
+        <div>
+          <h2 class="section-title">Evaluation data stays in the environment you configure.</h2>
+          <p class="section-lede">
+            Sigil runs scenarios against local or CI-deployed services, writes signed ledger events, and may call configured judge providers for LLM-judged scenarios. Provider behavior depends on your <code>[judge]</code> configuration. Review scenario rubrics and provider policies before using judges on sensitive data.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-num"><span>§</span> 04 · CONTACT</div>
+        <div>
+          <h2 class="section-title">Deletion, security, and privacy questions go to one address.</h2>
+          <p class="section-lede">
+            Email <a href={`mailto:${SITE.email}`} style="color:var(--seal)">{SITE.email}</a> for deletion requests, privacy questions, security review, or support. Include the relevant URL, command, or release version.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

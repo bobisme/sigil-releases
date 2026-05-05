@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#050607"/>
+  <rect x="40" y="40" width="1120" height="550" fill="none" stroke="#332718"/>
+  <text x="80" y="120" fill="#d6a04c" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="6">SIGIL · SPEC-DRIVEN EVAL FOR CODING AGENTS</text>
+  <text x="80" y="250" fill="#f1eee7" font-family="Georgia, serif" font-size="88">From markdown spec</text>
+  <text x="80" y="348" fill="#f1eee7" font-family="Georgia, serif" font-size="88">to verified merge.</text>
+  <text x="84" y="430" fill="#aeb4bb" font-family="Inter, Arial, sans-serif" font-size="30">You write intent. Agents write code. Sigil handles the rest.</text>
+  <g transform="translate(880 175)" stroke="#d6a04c" fill="none">
+    <circle cx="120" cy="120" r="86" stroke-width="3"/>
+    <circle cx="120" cy="120" r="74" stroke-width="1" opacity=".55"/>
+    <path d="M120 42 L188 168 L52 168 Z" stroke-width="4"/>
+    <line x1="120" y1="20" x2="120" y2="220" stroke-width="1" stroke-dasharray="5 8" opacity=".45"/>
+    <circle cx="120" cy="120" r="13" stroke-width="3"/>
+    <circle cx="120" cy="120" r="4" fill="#d6a04c" stroke="none"/>
+  </g>
+  <g font-family="JetBrains Mono, monospace" font-size="19">
+    <text x="84" y="520" fill="#73c99a">ALLOW</text>
+    <text x="178" y="520" fill="#d6a04c">REVIEW</text>
+    <text x="286" y="520" fill="#d97755">BLOCK</text>
+    <text x="940" y="520" fill="#aeb4bb">runsigil.com</text>
+  </g>
+</svg>

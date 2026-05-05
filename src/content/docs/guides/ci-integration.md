@@ -1,6 +1,6 @@
 ---
-title: CI Integration
-description: Wire sigil into GitHub Actions, status checks, and the merge queue.
+title: Sigil CI Integration for GitHub Actions
+description: Wire Sigil into GitHub Actions, status checks, branch protection, and the merge queue.
 ---
 
 Sigil ships with a first-class GitHub integration via the `sigil ci` command. It evaluates a PR, posts a status check, optionally comments, and — at `AUTO` trust — triggers the merge queue.

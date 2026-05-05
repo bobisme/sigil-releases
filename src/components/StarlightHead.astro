@@ -1,0 +1,66 @@
+---
+import DefaultHead from '@astrojs/starlight/components/Head.astro';
+import { SITE, absoluteUrl, jsonLd, sectionForPath } from '../lib/site';
+import Analytics from './Analytics.astro';
+
+const { starlightRoute } = Astro.locals;
+const pathname = Astro.url.pathname;
+const pageUrl = absoluteUrl(pathname);
+const title = starlightRoute.entry.data.title;
+const description = starlightRoute.entry.data.description || SITE.description;
+const section = sectionForPath(pathname);
+const firstSegment = pathname.split('/').filter(Boolean)[0] || '';
+const hasSectionIndex = ['concepts', 'guides', 'integrations', 'reference'].includes(firstSegment);
+const crumbs = [
+  { name: 'Home', url: absoluteUrl('/') },
+  { name: section, url: hasSectionIndex ? absoluteUrl(`/${firstSegment}/`) : undefined },
+  { name: title, url: pageUrl },
+];
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((crumb, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: crumb.name,
+    ...(crumb.url ? { item: crumb.url } : {}),
+  })),
+};
+
+const articleType = pathname === '/quickstart/' ? 'HowTo' : 'TechArticle';
+const articleSchema =
+  articleType === 'HowTo'
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'HowTo',
+        name: title,
+        description,
+        publisher: { '@type': 'Organization', name: SITE.name, email: SITE.email },
+        mainEntityOfPage: pageUrl,
+        step: [
+          'Initialize Sigil for a service',
+          'Write or use a scenario',
+          'Lint and generate editor types',
+          'Evaluate a pull request against a baseline',
+          'Emit an ALLOW, REVIEW, or BLOCK decision',
+        ].map((name, index) => ({ '@type': 'HowToStep', position: index + 1, name })),
+      }
+    : {
+        '@context': 'https://schema.org',
+        '@type': 'TechArticle',
+        headline: title,
+        description,
+        publisher: { '@type': 'Organization', name: SITE.name, email: SITE.email },
+        mainEntityOfPage: pageUrl,
+      };
+---
+
+<DefaultHead />
+<meta property="og:image" content={SITE.ogImage} />
+<meta name="twitter:image" content={SITE.ogImage} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<Analytics />
+<script type="application/ld+json" set:html={jsonLd(breadcrumbSchema)} />
+<script type="application/ld+json" set:html={jsonLd(articleSchema)} />

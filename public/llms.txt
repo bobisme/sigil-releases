@@ -1,0 +1,38 @@
+# Sigil
+
+Sigil is a merge policy engine for agent-generated pull requests. It turns markdown specs into sealed CI evaluations and returns ALLOW, REVIEW, or BLOCK.
+
+## Product
+
+- Overview: https://runsigil.com/
+- How it works: https://runsigil.com/how/
+- About: https://runsigil.com/about/
+- Contact: https://runsigil.com/contact/
+- Privacy: https://runsigil.com/privacy/
+
+## Getting Started
+
+- Quickstart: https://runsigil.com/quickstart/
+- Installation: https://runsigil.com/installation/
+- GitHub Actions integration: https://runsigil.com/integrations/github-actions/
+
+## Concepts
+
+- Dark Factory: https://runsigil.com/concepts/dark-factory/
+- Trust Model: https://runsigil.com/concepts/trust-model/
+- Invariants: https://runsigil.com/concepts/invariants/
+- Ledger: https://runsigil.com/concepts/ledger/
+- Fit and Limitations: https://runsigil.com/concepts/fit-limitations/
+
+## Guides
+
+- Writing Scenarios: https://runsigil.com/guides/writing-scenarios/
+- CI Integration: https://runsigil.com/guides/ci-integration/
+- Configuring Judges: https://runsigil.com/guides/configuring-judges/
+
+## Reference
+
+- Lua DSL: https://runsigil.com/reference/lua-dsl/
+- Configuration: https://runsigil.com/reference/configuration/
+- CLI: https://runsigil.com/reference/cli/
+- Changelog: https://runsigil.com/changelog/

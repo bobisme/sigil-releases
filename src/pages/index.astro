@@ -1,8 +1,51 @@
 ---
 import Layout from '../layouts/Landing.astro';
+import { SITE } from '../lib/site';
+
+const description = SITE.description;
+const schemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Sigil',
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'macOS, Linux',
+    description,
+    softwareVersion: '0.22.2',
+    downloadUrl: SITE.installUrl,
+    url: SITE.origin,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Sigil',
+      url: SITE.origin,
+      email: SITE.email,
+      sameAs: [SITE.github],
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Sigil',
+    url: SITE.origin,
+    email: SITE.email,
+    sameAs: [SITE.github],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      email: SITE.email,
+      contactType: 'support and security questions',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Sigil',
+    url: SITE.origin,
+    description,
+  },
+];
 ---
 
-<Layout title="Sigil · The closed-loop shipping system for coding agents">
+<Layout title="Sigil · From markdown spec to verified merge">
 
   <!-- ============================================================
        TOP NAV
@@ -24,23 +67,25 @@ import Layout from '../layouts/Landing.astro';
           </svg>
         </span>
         <span class="brand-word">sigil</span>
-        <span class="brand-sub">v0.22 · private beta</span>
+        <span class="brand-sub">v0.22 · released</span>
       </a>
       <div class="top-nav-links">
         <a href="/quickstart/">docs</a>
         <a href="/changelog/">changelog</a>
+        <a href="/contact/" data-event="contact_clicked" data-cta="nav">contact</a>
         <a href="/how/" class="top-nav-cta">how it works</a>
       </div>
     </div>
   </nav>
 
+  <main id="main">
   <!-- ============================================================
        HERO
        ============================================================ -->
   <header class="hero">
     <div class="hero-meta">
       <span><span class="hero-meta-seal">§</span> SPEC-DRIVEN EVAL FOR CODING AGENTS</span>
-      <span>private beta · 2026.04</span>
+      <span>public release · 2026.04</span>
     </div>
 
     <div class="hero-grid">
@@ -50,39 +95,65 @@ import Layout from '../layouts/Landing.astro';
           Agents write faster than your team can review. You write the intent. Your coding agent writes the code. Sigil handles the rest.
         </p>
         <div class="hero-cta-row">
-          <a href="/how/" class="hero-cta-primary">How it works →</a>
-          <a href="/quickstart/" class="hero-cta-secondary">Read the docs</a>
+          <a href="/installation/" class="hero-cta-primary" data-event="install_clicked" data-cta="hero">Install Sigil</a>
+          <a href="/quickstart/" class="hero-cta-secondary" data-event="quickstart_clicked" data-cta="hero">Gate a first PR</a>
+          <a href="/how/" class="hero-cta-ghost">How it works</a>
         </div>
         <div class="hero-install" aria-label="Install Sigil">
           <div class="hero-install-label">Install</div>
-          <code>curl -fsSL https://runsigil.com/install.sh | sh</code>
+          <div class="install-command">
+            <code>curl -fsSL https://runsigil.com/install.sh | sh</code>
+            <button class="copy-install" type="button" aria-label="Copy install command" data-copy-install data-source="hero" data-command="curl -fsSL https://runsigil.com/install.sh | sh"></button>
+          </div>
         </div>
       </div>
 
       <aside class="hero-specimen">
         <div class="specimen-label">
-          <span>SIGIL MARK</span>
-          <span>M-I</span>
+          <span>GitHub check</span>
+          <span>pull/42</span>
         </div>
-        <div class="specimen-mark">
-          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1">
-            <circle cx="32" cy="32" r="30" stroke-width="0.8" opacity="0.9" />
-            <circle cx="32" cy="32" r="27" stroke-width="0.5" opacity="0.4" />
-            <path d="M32 10 L52 46 L12 46 Z" stroke-width="1.1" />
-            <line x1="32" y1="4" x2="32" y2="60" stroke-width="0.4" opacity="0.35" stroke-dasharray="1 2" />
-            <circle cx="32" cy="10" r="1.2" fill="currentColor" stroke="none" />
-            <circle cx="52" cy="46" r="1.2" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="46" r="1.2" fill="currentColor" stroke="none" />
-            <circle cx="32" cy="34" r="3" stroke-width="0.8" />
-            <circle cx="32" cy="34" r="0.8" fill="currentColor" stroke="none" />
-          </svg>
+
+        <div class="check-artifact" aria-label="Sigil GitHub check result">
+          <div class="check-artifact-head">
+            <div>
+              <span class="check-context">sigil/api</span>
+              <span class="check-subcontext">sealed PR evaluation</span>
+            </div>
+            <span class="check-status">REVIEW</span>
+          </div>
+          <span class="check-stamp" aria-hidden="true">REVIEW</span>
+
+          <div class="check-bars">
+            <div class="check-bar-row">
+              <span>visible</span>
+              <div class="check-track"><span class="check-fill is-allow" style="--score: 100%"></span></div>
+              <strong>1.00</strong>
+            </div>
+            <div class="check-bar-row is-hot">
+              <span>holdout</span>
+              <div class="check-track"><span class="check-fill is-review" style="--score: 82%"></span></div>
+              <strong>0.82</strong>
+            </div>
+            <div class="check-bar-row">
+              <span>baseline</span>
+              <div class="check-track"><span class="check-fill is-base" style="--score: 96%"></span></div>
+              <strong>0.96</strong>
+            </div>
+          </div>
+
+          <div class="check-verdict">
+            <span class="verdict-kicker">decision</span>
+            <strong>regression on 2 holdouts</strong>
+          </div>
         </div>
+
         <dl class="specimen-kv">
-          <dt>name</dt><dd>Tri-Ocular</dd>
-          <dt>cipher</dt><dd class="seal">M-I</dd>
-          <dt>reads</dt><dd>three decisions, one eye</dd>
-          <dt>build</dt><dd>0.22.2</dd>
-          <dt>license</dt><dd>Elastic 2.0</dd>
+          <dt>status</dt><dd class="seal">REVIEW</dd>
+          <dt>agent</dt><dd>Claude Code / Cursor / Devin</dd>
+          <dt>evidence</dt><dd>signed ledger event</dd>
+          <dt>gate</dt><dd>fail-closed</dd>
+          <dt>build</dt><dd>sigil@0.22.2</dd>
         </dl>
       </aside>
     </div>
@@ -102,8 +173,8 @@ import Layout from '../layouts/Landing.astro';
       </div>
     </div>
 
-    <div class="protocol-strip is-stacked">
-      <div class="protocol-step">
+    <ol class="protocol-strip is-stacked">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">01</span>
           <span class="step-label">SPEC</span>
@@ -111,9 +182,9 @@ import Layout from '../layouts/Landing.astro';
         <div class="step-actor">you · human</div>
         <div class="step-title">Write the intent</div>
         <div class="step-note">A plain markdown spec — acceptance criteria, edge cases, invariants. One source of truth for what "done" means.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">02</span>
           <span class="step-label">GENERATE</span>
@@ -121,9 +192,9 @@ import Layout from '../layouts/Landing.astro';
         <div class="step-actor">sigil</div>
         <div class="step-title">Compile to scenarios</div>
         <div class="step-note">Sigil turns the spec into end-to-end test scenarios — a visible bundle the agent iterates against, and an age-encrypted holdout it never sees.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">03</span>
           <span class="step-label">IMPLEMENT</span>
@@ -131,9 +202,9 @@ import Layout from '../layouts/Landing.astro';
         <div class="step-actor">agent · any</div>
         <div class="step-title">Write the code</div>
         <div class="step-note">Claude Code, Cursor, Devin, or your own. The agent writes the implementation and runs the visible scenarios locally to verify its work before pushing.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">04</span>
           <span class="step-label">EVAL</span>
@@ -141,9 +212,9 @@ import Layout from '../layouts/Landing.astro';
         <div class="step-actor">sigil · ci</div>
         <div class="step-title">Run the full suite</div>
         <div class="step-note">CI runs every scenario — visible <em>and</em> hidden — against the PR and a baseline. Every score lands in a signed, append-only ledger.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">05</span>
           <span class="step-label">VERDICT</span>
@@ -151,9 +222,10 @@ import Layout from '../layouts/Landing.astro';
         <div class="step-actor">sigil</div>
         <div class="step-title">Allow, review, or block</div>
         <div class="step-note">A signed verdict, gated by a trust ledger the service has to earn. At the top trust tier, the merge happens on its own.</div>
-      </div>
-    </div>
+      </li>
+    </ol>
   </section>
+  </main>
 
   <!-- ============================================================
        FOOTER
@@ -173,10 +245,10 @@ import Layout from '../layouts/Landing.astro';
           </span>
           <span class="brand-word">sigil</span>
         </div>
-        <p class="footer-tagline">Closed-loop shipping for coding agents. You audit — not operate.</p>
+        <p class="footer-tagline">The merge policy engine for agent-generated pull requests. Contact: <a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>
       </div>
       <div class="footer-col">
-        <h4>Product</h4>
+        <p class="footer-heading">Product</p>
         <ul>
           <li><a href="/how/">How it works</a></li>
           <li><a href="/quickstart/">Quickstart</a></li>
@@ -185,7 +257,7 @@ import Layout from '../layouts/Landing.astro';
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Docs</h4>
+        <p class="footer-heading">Docs</p>
         <ul>
           <li><a href="/concepts/dark-factory/">Concepts</a></li>
           <li><a href="/reference/lua-dsl/">Lua DSL</a></li>
@@ -194,24 +266,18 @@ import Layout from '../layouts/Landing.astro';
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Project</h4>
+        <p class="footer-heading">Project</p>
         <ul>
           <li><a href="/installation/">Install</a></li>
+          <li><a href="/contact/">Contact</a></li>
+          <li><a href="/privacy/">Privacy</a></li>
+          <li><a href="/about/">About</a></li>
           <li><a href="/changelog/">Changelog</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Adjacent</h4>
-        <ul>
-          <li><a href="https://sigstore.dev">Sigstore</a></li>
-          <li><a href="https://in-toto.io">in-toto</a></li>
-          <li><a href="https://inspect.aisi.org.uk">inspect-ai</a></li>
-          <li><a href="https://age-encryption.org">age</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2026 · Elastic License 2.0 · signed builds</span>
+      <span>© 2026 · Elastic License 2.0 · signed builds · Built by <a href="https://bob.cx">Bob</a></span>
       <span class="seal">sigil@0.22.2</span>
     </div>
   </footer>

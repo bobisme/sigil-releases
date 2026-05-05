@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Landing.astro';
+import { SITE } from '../lib/site';
 
 // =========================================================
 // MARKDOWN SPEC — the human-written source that compiles
@@ -414,6 +415,7 @@ const INVARIANTS = [
 // ACTIVE MARK — Tri-Ocular (M-I), stamped on hero specimen
 // =========================================================
 const activeMark = { cipher: 'M-I', name: 'Tri-Ocular', note: 'three decisions, one eye' };
+const description = 'See how Sigil turns specs into sealed scenarios, evaluates agent PRs in CI, and emits ALLOW, REVIEW, or BLOCK merge decisions.';
 
 // =========================================================
 // EVAL FLOW geometry
@@ -434,7 +436,7 @@ const Y_LINE = 140;
 const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE }));
 ---
 
-<Layout title="How Sigil works · Merge gate for coding agents">
+<Layout title="How Sigil works · Merge gate for coding agents" description={description} canonicalPath="/how/">
 
   <!-- ============================================================
        TOP NAV
@@ -464,16 +466,21 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <a href="#trust">trust</a>
         <a href="#invariants">invariants</a>
         <a href="/quickstart/">docs</a>
+        <a href="/contact/" data-event="contact_clicked" data-cta="how-nav">contact</a>
       </div>
     </div>
   </nav>
 
+  <main id="main">
   <!-- ============================================================
        PAGE HEADER
        ============================================================ -->
   <header class="page-header">
     <div class="caps-seal">DEEP DIVE</div>
     <h1 class="page-header-title">How Sigil works.</h1>
+    <p class="hero-lede" style="margin-top:20px;max-width:760px">
+      Sigil is a merge policy engine for agent-generated pull requests. It turns markdown specs into sealed CI evaluations and returns ALLOW, REVIEW, or BLOCK decisions your team can audit.
+    </p>
   </header>
 
   <!-- ============================================================
@@ -490,8 +497,8 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
       </div>
     </div>
 
-    <div class="protocol-strip">
-      <div class="protocol-step">
+    <ol class="protocol-strip">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">01</span>
           <span class="step-label">SPEC</span>
@@ -499,9 +506,9 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <div class="step-actor">human</div>
         <div class="step-title">Write the intent</div>
         <div class="step-note">A person writes the spec in markdown — acceptance criteria, invariants, edge cases. One source of truth for what "done" means.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">02</span>
           <span class="step-label">GENERATE</span>
@@ -509,9 +516,9 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <div class="step-actor">sigil</div>
         <div class="step-title">Compile to scenarios</div>
         <div class="step-note"><span class="mono">sigil scenario generate</span> turns the spec into Lua scenarios — a visible half, and an age-encrypted holdout the agent will never see.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">03</span>
           <span class="step-label">IMPLEMENT</span>
@@ -519,9 +526,9 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <div class="step-actor">agent</div>
         <div class="step-title">Write the patch</div>
         <div class="step-note">The coding agent reads the spec and the visible scenarios, writes code, runs the visible scenarios locally, and opens a PR.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <span class="step-loop" title="Loops until converged or budget exceeded">&#8634;</span>
         <div class="step-head">
           <span class="step-num">04</span>
@@ -530,9 +537,9 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <div class="step-actor">sigil &harr; agent</div>
         <div class="step-title">Opaque feedback</div>
         <div class="step-note">Sigil runs PR and baseline through every scenario. The agent sees only <span class="mono">step_3: fail</span> — no values, no source — and retries until it converges.</div>
-      </div>
+      </li>
 
-      <div class="protocol-step">
+      <li class="protocol-step">
         <div class="step-head">
           <span class="step-num">05</span>
           <span class="step-label">DECIDE</span>
@@ -540,8 +547,8 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         <div class="step-actor">sigil &rarr; human</div>
         <div class="step-title">Seal the merge</div>
         <div class="step-note"><span class="mono" style="color:var(--allow)">ALLOW</span> · <span class="mono" style="color:var(--review)">REVIEW</span> · <span class="mono" style="color:var(--block)">BLOCK</span> — gated by the trust ladder. AUTO merges; REVIEW goes to a human; BLOCK halts the queue.</div>
-      </div>
-    </div>
+      </li>
+    </ol>
   </section>
 
   <!-- ============================================================
@@ -621,6 +628,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
       <div class="prov-cell"><div class="prov-k">evaluator</div><div class="prov-v">sigil@0.22.2</div></div>
     </div>
   </section>
+  </main>
 
   <!-- ============================================================
        §03 — SPEC (human-written markdown, input to sigil generate)
@@ -991,10 +999,10 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
           </span>
           <span class="brand-word">sigil</span>
         </div>
-        <p class="footer-tagline">The trust layer between coding agents and your main branch. Fail-closed by construction.</p>
+        <p class="footer-tagline">The trust layer between coding agents and your main branch. Contact: <a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>
       </div>
       <div class="footer-col">
-        <h4>Docs</h4>
+        <p class="footer-heading">Docs</p>
         <ul>
           <li><a href="/quickstart/">Quickstart</a></li>
           <li><a href="/concepts/dark-factory/">Concepts</a></li>
@@ -1003,7 +1011,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Operations</h4>
+        <p class="footer-heading">Operations</p>
         <ul>
           <li><a href="/concepts/trust-model/">Trust model</a></li>
           <li><a href="/guides/ci-integration/">CI integration</a></li>
@@ -1012,24 +1020,18 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Project</h4>
+        <p class="footer-heading">Project</p>
         <ul>
           <li><a href="/installation/">Install</a></li>
+          <li><a href="/contact/">Contact</a></li>
+          <li><a href="/privacy/">Privacy</a></li>
+          <li><a href="/about/">About</a></li>
           <li><a href="/changelog/">Changelog</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Adjacent</h4>
-        <ul>
-          <li><a href="https://sigstore.dev">Sigstore</a></li>
-          <li><a href="https://in-toto.io">in-toto</a></li>
-          <li><a href="https://inspect.aisi.org.uk">inspect-ai</a></li>
-          <li><a href="https://age-encryption.org">age</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2026 · Elastic License 2.0 · signed builds</span>
+      <span>© 2026 · Elastic License 2.0 · signed builds · Built by <a href="https://bob.cx">Bob</a></span>
       <span class="seal">sigil@0.22.2</span>
     </div>
   </footer>

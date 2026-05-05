@@ -1,0 +1,20 @@
+# Sigil Full Context
+
+Sigil is a released developer tool for teams using coding agents on real pull requests. It is best described as a merge policy engine or CI merge gate for agent-generated PRs.
+
+The dominant alternative is normal CI plus visible tests plus human-only PR review. Sigil's wedge is sealed holdout evaluation: the authoring agent can iterate against visible scenarios, but the merge decision is based on visible and hidden scenarios run against both PR and baseline environments. The result is an auditable ALLOW, REVIEW, or BLOCK decision.
+
+Core routes:
+
+- https://runsigil.com/ defines the product and install path.
+- https://runsigil.com/how/ explains the full workflow from markdown spec to signed merge decision.
+- https://runsigil.com/quickstart/ walks through the first evaluation and decision.
+- https://runsigil.com/installation/ explains the public release installer, Homebrew, verification, pinned versions, and uninstall.
+- https://runsigil.com/integrations/github-actions/ shows the GitHub Actions workflow and permissions.
+- https://runsigil.com/concepts/dark-factory/ explains visible vs holdout scenarios and opaque feedback.
+- https://runsigil.com/concepts/trust-model/ explains earned autonomy, SHADOW/ADVISORY/AUTO, overrides, and trust decay.
+- https://runsigil.com/concepts/ledger/ explains signed append-only event storage and replay.
+- https://runsigil.com/reference/lua-dsl/ documents scenario APIs including `expect`, `invariant`, `sigil.intent`, `sigil.judge`, HTTP, browser, and generator helpers.
+
+Contact: info@runsigil.com
+Releases: https://github.com/bobisme/sigil-releases/releases/latest

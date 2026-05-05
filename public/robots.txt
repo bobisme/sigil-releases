@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://runsigil.com/sitemap-index.xml

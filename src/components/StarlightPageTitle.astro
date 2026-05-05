@@ -1,0 +1,61 @@
+---
+import { sectionForPath } from '../lib/site';
+
+const { starlightRoute } = Astro.locals;
+const pathname = Astro.url.pathname;
+const first = pathname.split('/').filter(Boolean)[0] || '';
+const section = sectionForPath(pathname);
+const hasSectionIndex = ['concepts', 'guides', 'integrations', 'reference'].includes(first);
+const crumbs = [
+  { label: 'Home', href: '/' },
+  { label: section, href: hasSectionIndex ? `/${first}/` : null },
+  { label: starlightRoute.entry.data.title, href: pathname },
+];
+---
+
+<nav class="docs-breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    {crumbs.map((crumb, index) => (
+      <li>
+        {index < crumbs.length - 1 && crumb.href ? <a href={crumb.href}>{crumb.label}</a> : <span aria-current={index === crumbs.length - 1 ? 'page' : undefined}>{crumb.label}</span>}
+      </li>
+    ))}
+  </ol>
+</nav>
+<h1 id="_top">{starlightRoute.entry.data.title}</h1>
+
+<style>
+  @layer starlight.core {
+    .docs-breadcrumbs {
+      margin-top: 0.75rem;
+      font-size: var(--sl-text-xs);
+      color: var(--sl-color-gray-3);
+    }
+    .docs-breadcrumbs ol {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      list-style: none;
+      padding: 0;
+    }
+    .docs-breadcrumbs li:not(:last-child)::after {
+      content: '/';
+      margin-inline-start: 0.5rem;
+      color: var(--sl-color-gray-5);
+    }
+    .docs-breadcrumbs a {
+      color: var(--sl-color-gray-2);
+      text-decoration: none;
+    }
+    .docs-breadcrumbs a:hover {
+      color: var(--sl-color-white);
+    }
+    h1 {
+      margin-top: 1rem;
+      font-size: var(--sl-text-h1);
+      line-height: var(--sl-line-height-headings);
+      font-weight: 600;
+      color: var(--sl-color-white);
+    }
+  }
+</style>

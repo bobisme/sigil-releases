@@ -1,0 +1,50 @@
+---
+import Layout from '../layouts/Landing.astro';
+import { SITE } from '../lib/site';
+
+const description = 'About Sigil, a released merge policy engine for agent-generated pull requests with sealed holdout evaluations and signed decisions.';
+---
+
+<Layout title="About Sigil · Merge policy for coding agents" description={description} canonicalPath="/about/">
+  <nav class="top-nav">
+    <div class="top-nav-inner">
+      <a href="/" class="brand"><span class="brand-word">sigil</span><span class="brand-sub">about</span></a>
+      <div class="top-nav-links">
+        <a href="/quickstart/">docs</a>
+        <a href="/installation/">install</a>
+        <a href="/privacy/">privacy</a>
+        <a href="/contact/" class="top-nav-cta">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="page-header">
+      <div class="caps-seal">ABOUT</div>
+      <h1 class="page-header-title">Sigil is a merge policy engine for agent-generated pull requests.</h1>
+      <p class="hero-lede" style="margin-top:20px;max-width:820px">
+        It turns markdown specs into sealed CI evaluations, runs PR and baseline environments side by side, records signed ledger evidence, and emits ALLOW, REVIEW, or BLOCK.
+      </p>
+    </header>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-num"><span>§</span> 01 · PROJECT</div>
+        <div>
+          <h2 class="section-title">Built for teams letting coding agents touch real branches.</h2>
+          <p class="section-lede">
+            Sigil is not an AI code review bot. It is a CI decision layer for workflows where visible tests and human-only PR review are no longer enough signal. The core mechanism is sealed holdout evaluation plus an auditable trust ledger.
+          </p>
+        </div>
+      </div>
+
+      <dl class="specimen-kv" style="max-width:720px">
+        <dt>release channel</dt><dd>public releases</dd>
+        <dt>license</dt><dd>Elastic License 2.0</dd>
+        <dt>releases</dt><dd><a href={SITE.releases} style="color:var(--seal)">GitHub release artifacts</a></dd>
+        <dt>source</dt><dd><a href={SITE.github} style="color:var(--seal)">bobisme/sigil-releases</a></dd>
+        <dt>contact</dt><dd><a href={`mailto:${SITE.email}`} style="color:var(--seal)">{SITE.email}</a></dd>
+      </dl>
+    </section>
+  </main>
+</Layout>

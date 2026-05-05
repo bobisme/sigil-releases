@@ -1,0 +1,64 @@
+---
+import Layout from '../layouts/Landing.astro';
+import { SITE } from '../lib/site';
+
+const description = 'Contact Sigil for install help, support, security questions, and production evaluation of agent-generated pull request merge gates.';
+---
+
+<Layout title="Contact Sigil · Support and security questions" description={description} canonicalPath="/contact/">
+  <nav class="top-nav">
+    <div class="top-nav-inner">
+      <a href="/" class="brand"><span class="brand-word">sigil</span><span class="brand-sub">contact</span></a>
+      <div class="top-nav-links">
+        <a href="/quickstart/">docs</a>
+        <a href="/installation/">install</a>
+        <a href="/privacy/">privacy</a>
+        <a href="/how/" class="top-nav-cta">how it works</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="page-header">
+      <div class="caps-seal">CONTACT</div>
+      <h1 class="page-header-title">Talk to the maintainer.</h1>
+      <p class="hero-lede" style="margin-top:20px;max-width:760px">
+        For install help, production-fit questions, security/privacy review, or support, email <a href={`mailto:${SITE.email}`} style="color:var(--seal)">{SITE.email}</a>.
+      </p>
+    </header>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-num"><span>§</span> 01 · ROUTES</div>
+        <div>
+          <h2 class="section-title">Use one address. Include the workflow you are trying to gate.</h2>
+          <p class="section-lede">
+            The fastest useful note names your repo shape, CI provider, coding agent, service runtime, and whether you are evaluating local runs, GitHub status checks, or automatic merge policy.
+          </p>
+        </div>
+      </div>
+      <div class="protocol-strip">
+        <div class="protocol-step">
+          <div class="step-title">Install and CI help</div>
+          <div class="step-note">Installer behavior, Homebrew, release artifacts, GitHub Actions, Docker Compose, and PATH issues.</div>
+        </div>
+        <div class="protocol-step">
+          <div class="step-title">Production evaluation</div>
+          <div class="step-note">Whether Sigil fits your agent PR workflow, trust thresholds, holdout design, and merge queue policy.</div>
+        </div>
+        <div class="protocol-step">
+          <div class="step-title">Security and privacy</div>
+          <div class="step-note">Data flow, retention, deletion requests, provider usage, release verification, and incident questions.</div>
+        </div>
+        <div class="protocol-step">
+          <div class="step-title">Bug reports</div>
+          <div class="step-note">Include sigil version, command, platform, CI provider, relevant config, and sanitized output.</div>
+        </div>
+        <div class="protocol-step">
+          <div class="step-title">Docs gaps</div>
+          <div class="step-note">Send the page, query, or task you expected to find. Docs search gaps are treated as product feedback.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

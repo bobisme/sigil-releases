@@ -1,0 +1,104 @@
+---
+import { SITE } from '../lib/site';
+---
+
+<script is:inline define:vars={{ contactEmail: SITE.email }}>
+  (() => {
+    const endpoint = window.SIGIL_ANALYTICS_ENDPOINT || '';
+
+    function track(name, properties = {}) {
+      const payload = {
+        name,
+        properties: {
+          path: location.pathname,
+          referrer: document.referrer || null,
+          ...properties,
+        },
+        ts: new Date().toISOString(),
+      };
+
+      window.dispatchEvent(new CustomEvent('sigil:analytics', { detail: payload }));
+
+      if (typeof window.plausible === 'function') {
+        window.plausible(name, { props: payload.properties });
+      }
+
+      if (endpoint && navigator.sendBeacon) {
+        navigator.sendBeacon(endpoint, JSON.stringify(payload));
+      }
+
+      if (localStorage.getItem('sigil.analytics.debug') === '1') {
+        console.info('[sigil analytics]', payload);
+      }
+    }
+
+    window.sigilTrack = track;
+
+    document.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target.closest('[data-event]') : null;
+      if (!target) return;
+      track(target.getAttribute('data-event'), {
+        cta: target.getAttribute('data-cta') || target.textContent?.trim() || null,
+        href: target.getAttribute('href') || null,
+      });
+    });
+
+    document.addEventListener('click', async (event) => {
+      const button = event.target instanceof Element ? event.target.closest('[data-copy-install]') : null;
+      if (!button) return;
+      const command = button.getAttribute('data-command') || '';
+      if (!command) return;
+      try {
+        await navigator.clipboard.writeText(command);
+        button.setAttribute('data-copied', 'true');
+      } catch {
+        button.setAttribute('data-copied', 'manual');
+      }
+      track('install_command_copy', { source: button.getAttribute('data-source') || 'unknown' });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      track('page_viewed', { title: document.title });
+
+      document.querySelectorAll('button[title="Copy to clipboard"]').forEach((button) => {
+        button.setAttribute('aria-label', 'Copy code');
+        button.querySelectorAll('svg, div').forEach((icon) => icon.setAttribute('aria-hidden', 'true'));
+      });
+
+      document.addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.matches('[role="search"], .pagefind-ui__search-form')) {
+          const input = form.querySelector('input[type="search"], input');
+          track('search_submitted', {
+            query: input instanceof HTMLInputElement ? input.value : null,
+          });
+        }
+      });
+
+      document.addEventListener('click', (event) => {
+        const result = event.target instanceof Element ? event.target.closest('.pagefind-ui__result-link') : null;
+        if (!result) return;
+        track('search_result_clicked', {
+          href: result.getAttribute('href'),
+          text: result.textContent?.trim() || null,
+        });
+      });
+
+      const searchRoot = document.querySelector('#starlight__search');
+      if (searchRoot && 'MutationObserver' in window) {
+        const observer = new MutationObserver(() => {
+          const results = document.querySelectorAll('.pagefind-ui__result').length;
+          const input = document.querySelector('.pagefind-ui__search-input');
+          if (results > 0 || (input instanceof HTMLInputElement && input.value)) {
+            track('search_results_displayed', {
+              result_count: results,
+              query: input instanceof HTMLInputElement ? input.value : null,
+            });
+          }
+        });
+        observer.observe(searchRoot, { childList: true, subtree: true });
+      }
+    });
+  })();
+</script>

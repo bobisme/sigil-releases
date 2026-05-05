@@ -41,4 +41,4 @@ Sigil is distributed under the [Elastic License 2.0](./LICENSE). Free for evalua
 
 ## Support
 
-Private beta — contact the maintainer directly, or open an issue on this repo.
+For support, install questions, security/privacy review, or production-fit questions, email info@runsigil.com or open an issue on this repo.
