@@ -22,4 +22,8 @@ sed -i -E "s#sigil@[0-9]+\.[0-9]+\.[0-9]+[^<]*#sigil@${VERSION}#g" \
   src/pages/index.astro \
   src/pages/how.astro
 
+# Sigil mark build row on the landing page.
+sed -i -E "s#(<dt>build</dt><dd>)[^<]+(</dd>)#\1${VERSION}\2#g" \
+  src/pages/index.astro
+
 echo "Bumped to v${VERSION} (nav reads v${MAJOR_MINOR})"
