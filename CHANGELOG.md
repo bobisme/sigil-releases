@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [0.23.0] — 2026-05-27
+
+- `sigil run [PATHS...]` — minimal scenario runner with no `.sigil/sigil.toml` required. Walks files/directories for `*.lua`, runs each, prints pass/fail. Flags: `--filter <SUBSTR>` (repeatable, substring on path + title), `--tag` / `--exclude-tag` (existing scenario tag semantics), `--endpoint <URL>` (optional; required at first HTTP call). Exit codes 0 / 1 / 2 for all-passed / some-failed / no-match (pytest convention).
+- Native browser backend (the 0.22.x cutover default) is now functional end-to-end. The CDP bridge, primary-page session attach, and 14 of 17 `BrowserCall` variants (Fill, Wait, Html, Type, Press, Hover, Check, Select, Scroll, Checked, WaitDownload, Cookies, Pdf, Snapshot, Upload) all work against real Chrome-for-Testing.
+- `sigil install-browser` actually downloads on a clean host — HTTPS transport wired through asupersync. Cache-hit path now writes the `current` pointer so `sigil browser doctor` doesn't immediately report the binary as missing.
+- `[browser] headless` config option + `SIGIL_BROWSER_HEADLESS` env override. Set to `false` to see the browser window during local development.
+- `sigil install-browser` distinguishes its output: `Reusing cached …` on cache hit, `Using system …` for `--use-system`, `Installed …` for a fresh download.
+- **Security**: `sigil.browser.upload` now routes every file path through a per-scenario sandbox (canonicalize-after-symlink-resolve, fail-closed). Untrusted scenarios can no longer attach arbitrary host files (`/etc/passwd`, SSH keys, etc.) to forms.
+- **Performance**: native browser only launches for scenarios that declare `"browser"` capability. Pure-HTTP scenarios in eval went from ~282ms/scenario to ~1ms/scenario (Chrome startup eliminated). Mis-declared scenarios fail with a clear policy error instead of silently launching.
+- `scenario run --deploy` no longer races on back-to-back invocations: port-readiness polling after SIGTERM (with SIGKILL escalation), foreign-pid guard prevents killing unrelated processes if the pid file is stale.
+- Workspace clippy gate (`cargo clippy --workspace --all-targets`) now exits 0; added to CI.
+
 ## [0.21.0] — 2026-04-30
 
 - `sigil.sleep()` primitive for timing control

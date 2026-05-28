@@ -41,10 +41,10 @@ brew install bobisme/tap/sigil
 
 ## Pin a release
 
-For reproducible CI, install from a specific GitHub release instead of the moving `latest` URL. Replace `v0.22.2` with the version you want:
+For reproducible CI, install from a specific GitHub release instead of the moving `latest` URL. Replace `v0.23.0` with the version you want:
 
 ```sh
-curl -fsSL https://github.com/bobisme/sigil-releases/releases/download/v0.22.2/sigil-installer.sh | sh
+curl -fsSL https://github.com/bobisme/sigil-releases/releases/download/v0.23.0/sigil-installer.sh | sh
 ```
 
 ## Verify release artifacts

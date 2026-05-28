@@ -33,6 +33,16 @@ sigil ci owner/repo#42 --service <svc> [--comment] [--auto-merge] [--dry-run]
 
 ## Scenarios
 
+### `sigil run`
+
+```
+sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL>]
+```
+
+Minimal scenario runner — runs `.lua` files directly without requiring `.sigil/sigil.toml`, the eval pipeline, or a ledger. Each positional is a file or a directory (recursive walk for `*.lua`, `lib/` skipped). `--filter` is substring-matched against scenario file path and `title` (repeatable, OR'd). `--tag` / `--exclude-tag` use the same semantics as `sigil scenario run` (exclude always wins). `--endpoint` is optional — surfaces a clear error at first HTTP call if a scenario needs one. Exit codes: `0` all passed, `1` some failed, `2` zero scenarios matched (pytest convention).
+
+For PR evaluation, scoring, ledger writes, baseline comparison, and decision policy use `sigil eval` instead.
+
 ### `sigil scenario lint`
 
 ```

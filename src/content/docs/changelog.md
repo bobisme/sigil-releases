@@ -5,6 +5,38 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.23.0] — 2026-05-27
+
+### Added
+- **`sigil run [PATHS...]`** — minimal scenario runner. No `.sigil/sigil.toml` required. Walks files/directories for `*.lua` (recursive, `lib/` skipped), runs each via the in-process scenario runtime, prints pass/fail + summary. Flags:
+  - `--filter <SUBSTR>` (repeatable, OR'd, substring on path and scenario title)
+  - `--tag <T>` / `--exclude-tag <T>` (existing scenario tag semantics; exclude always wins)
+  - `--endpoint <URL>` (optional; surfaces a clear error at first HTTP call if unset, so browser-only / client-side scenarios can run without one)
+  - Exit codes: 0 all passed, 1 some failed, 2 zero scenarios matched (pytest convention)
+- **`[browser] headless` config + `SIGIL_BROWSER_HEADLESS` env override** — set to `false` to see the browser window during local development.
+- **Clearer `sigil install-browser` output** — distinguishes `Reusing cached chrome …` on cache hit from `Using system chrome …` (with `--use-system`) and `Installed chrome …` (fresh download).
+
+### Fixed
+- **Native browser backend (the 0.22.x cutover default) now functional end-to-end.** The CDP bridge was previously stubbed: every `sigil.browser.*` call returned `Err(Shutdown)` in <1ms without ever launching Chrome. This release wires `JobKind::CdpCall` / `AwaitEvent` / `AwaitDownload` through the live CDP client, event router, and download tracker; primes a default page session on launch and routes `Page.*`/`Runtime.*`/etc. accordingly.
+- **`NativeBrowserManager::plan_call` handles 14 of 17 `BrowserCall` variants** (was 7). Wired: `Fill`, `Wait`, `Html`, `Type`, `Press`, `Hover`, `Check`, `Select`, `Scroll`, `Checked`, `WaitDownload`, `Cookies`, `Pdf`, `Snapshot`, `Upload`.
+- **`sigil install-browser` HTTPS transport** wired through asupersync — pinned Chrome-for-Testing zip downloads + verifies + extracts in a single command on a clean host. Distinct error variants for DNS / TLS / connect / partial-body / HTTP-status failures.
+- **`sigil install-browser` cache-hit writes the `current` pointer** so `sigil browser doctor` doesn't immediately report the binary as missing after a successful pre-populated install.
+- **`sigil browser doctor` `use_system_fallback` row** reads coherently across all four states (Sigil install + no system, Sigil install + system available, system only, neither).
+- **`scenario run --deploy` retry race** — back-to-back invocations no longer fail with "Error deploying service" after killing a stale process. Port-readiness polling after SIGTERM (with SIGKILL escalation after 2s), foreign-pid guard via `/proc/net/tcp{,6}`.
+- **`cdp/client` integration tests** un-`#[ignore]`d (7 tests). Root cause was a dangling reader task keeping the server-side TCP half open.
+- **Workspace clippy gate** (`cargo clippy --workspace --all-targets --locked -- -D warnings`) now exits 0 (was ~213 errors in test code). Added to CI.
+
+### Security
+- **`sigil.browser.upload` routes every file path through a per-scenario path sandbox** before `DOM.setFileInputFiles`. Previously caller-supplied paths went straight to Chrome, letting an untrusted scenario attach any file on the host (`/etc/passwd`, SSH keys, etc.) to a form. The sandbox canonicalizes paths after symlink resolution, rejects escapes (`OutsideAllowedRoots`), and fail-closes on a missing root. Allowed root is the **scenario file's parent directory**, so uploads can only reach fixtures sitting next to the scenario.
+
+### Performance
+- **Native browser only launches when a scenario declares `"browser"` capability.** Previously every scenario eagerly spawned Chrome (twice — once per PR/baseline env) before policy was even parsed. Pure-HTTP scenarios in `sigil eval --tag health` went from ~282ms/scenario to ~1ms/scenario.
+- **Lazy browser-init backstop**: even browser-declared scenarios that never actually call the browser don't pay launch cost.
+- Mis-declared scenarios that call `sigil.browser.*` without the `"browser"` capability now fail with a clear policy error instead of silently launching Chrome anyway.
+
+### BREAKING (carried from prior cutover)
+- `[browser] backend` default flipped from `cli` to `native`. Browser scenarios now run in-process via the `sigil-browser` crate by default. The CLI backend (`agent-browser`) shell-out path was removed; `backend = "cli"` still deserialises (so existing configs do not fail to parse) but every `sigil.browser.*` call returns a structured "removed" error directing operators to set `backend = "native"`.
+
 ## [0.21.0] — 2026-04-30
 
 ### Added
