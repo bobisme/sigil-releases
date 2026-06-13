@@ -64,6 +64,18 @@ expect(res.status == 200)
 --          404
 ```
 
+## `sigil.check(expr, label)` — advisory checks
+
+`sigil.check` is the **nonfatal** counterpart to `expect`: the outcome is recorded but never fails the scenario or changes the exit code. Use it for soft signals and contract claims where you want to observe drift without blocking. The expression is evaluated defensively, so a check against a field that no longer exists records an evaluation error and the scenario keeps running.
+
+```lua
+sigil.check(res.status == 200, "status ok")
+--- The payment id keeps the documented prefix.
+sigil.check(res.json.id:match("^pay_"), "payment id shape")
+```
+
+Each check appears in the per-scenario `checks[]` array of `sigil run --json` as `{label, passed, severity, source, description, failure_kind, message}` — `description` is the lifted `---` comment above the call. A `---` block above an `expect` is lifted the same way (into `expects[]`). Check outcomes never affect `status` or `failure_class`; derive pass/fail from those, not from a check's `passed` flag.
+
 ## `invariant(name, opts)` — property testing
 
 ```lua
@@ -125,7 +137,7 @@ Getters return strings; actions return nil or error. Key methods: `open`, `click
 
 ## Capabilities
 
-The `policy.capabilities` field is static metadata. `sigil scenario lint` rejects scenarios that use a capability they didn't declare:
+The `policy.capabilities` field is static metadata. `sigil scenario lint` rejects scenarios that use a capability they didn't declare (E003), name a capability that doesn't exist (E005), or `require('lib.wraith')` without declaring `wraith` (E006):
 
 | Capability | Grants access to |
 |------------|------------------|
@@ -135,6 +147,7 @@ The `policy.capabilities` field is static metadata. `sigil scenario lint` reject
 | `property` | `invariant` |
 | `exec` | `sigil.exec` |
 | `browser` | `sigil.browser.*` |
+| `wraith` | `require('lib.wraith')` — the session/auth helper in wraith-generated contract scenarios |
 | `db` | `sigil.db` (Phase C+) |
 
 ## Sandbox rules

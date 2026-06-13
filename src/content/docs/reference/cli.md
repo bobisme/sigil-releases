@@ -36,20 +36,33 @@ sigil ci owner/repo#42 --service <svc> [--comment] [--auto-merge] [--dry-run]
 ### `sigil run`
 
 ```
-sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL>]
+sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL>] [--env KEY[=VALUE]] [--allow-cross-origin] [--json]
 ```
 
 Minimal scenario runner — runs `.lua` files directly without requiring `.sigil/sigil.toml`, the eval pipeline, or a ledger. Each positional is a file or a directory (recursive walk for `*.lua`, `lib/` skipped). `--filter` is substring-matched against scenario file path and `title` (repeatable, OR'd). `--tag` / `--exclude-tag` use the same semantics as `sigil scenario run` (exclude always wins). `--endpoint` is optional — surfaces a clear error at first HTTP call if a scenario needs one. Exit codes: `0` all passed, `1` some failed, `2` zero scenarios matched (pytest convention).
 
+- `--env KEY[=VALUE]` (repeatable) — populate `sigil.env()`. `KEY=VALUE` sets a literal value (only the first `=` splits, so values may contain `=`); bare `KEY` passes the value through from sigil's own process environment, keeping secrets off the command line. Strict allowlist: only named keys are visible to the scenario; duplicates are last-wins.
+- `--allow-cross-origin` — disable endpoint pinning. By default every HTTP call and redirect is confined to the `--endpoint` origin; a cross-origin `base_url` is a runtime error. This flag restores the old unconfined behavior — only use it for trusted scenarios (see the security note in `--help`).
+- `--json` — emit a machine-readable report on stdout instead of human output. Per-scenario entries: `{id, title?, status, duration_ms, failure_class?, checks, expects, error?, diagnostic?}`. `failure_class` is `"assertion"` (a behavior problem) or `"crash"` (a tooling/scenario problem), omitted for passing scenarios.
+
 For PR evaluation, scoring, ledger writes, baseline comparison, and decision policy use `sigil eval` instead.
 
-### `sigil scenario lint`
+### `sigil scenario lint` / `lint-path`
 
 ```
 sigil scenario lint [--service <svc>]
+sigil scenario lint-path <paths...> [--json]
 ```
 
-Parse + static-check every scenario. Verifies capabilities, metadata, and sandbox-safety rules.
+`lint` parses + static-checks every scenario in a configured project (capabilities, metadata, sandbox-safety rules). `lint-path` lints arbitrary `.lua` files **without** a `.sigil/` project layout — the same rule set, with machine-readable findings under `--json` (`{file, code, severity, message, line, span}`). Exit `0` when clean, nonzero when any error-severity finding is present.
+
+### `sigil scenario run`
+
+```
+sigil scenario run [SCENARIO_ID | --all] [--service <svc>] [--endpoint <URL>] [--format human|json] [--allow-cross-origin]
+```
+
+Run scenarios from a configured project. `--format json` emits the same report schema as `sigil run --json` (one schema across both runners). Endpoint pinning applies here too, with the project's `[eval] allowed_origins` allowlist permitting known sidecar origins.
 
 ### `sigil scenario generate`
 

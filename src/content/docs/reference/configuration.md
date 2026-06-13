@@ -102,3 +102,12 @@ TEST_API_KEY   = { from = "CI_TEST_API_KEY" }     # rename from another var
 ```
 
 Anything not listed is invisible to scenarios.
+
+## `[eval]`
+
+```toml
+[eval]
+allowed_origins = ["http://127.0.0.1:9090"]   # extra origins scenarios may reach
+```
+
+Endpoint pinning confines scenario HTTP to the deployed service's origin by default — a holdout or contract scenario cannot exfiltrate over an arbitrary `base_url`. `allowed_origins` adds extra origins that `sigil eval` / `sigil scenario run` / `sigil generate` may reach (typically sidecars like a metrics endpoint on another port). Entries must be bare origins (`scheme://host[:port]`, at most a trailing `/`); a malformed entry is a hard config error at load (fail-closed). The deployed service's own origin is always allowed and need not be listed. (`sigil run`, which has no project config, pins to `--endpoint` and ignores this list; use its `--allow-cross-origin` flag instead.)
