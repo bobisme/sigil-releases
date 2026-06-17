@@ -43,7 +43,7 @@ Minimal scenario runner — runs `.lua` files directly without requiring `.sigil
 
 - `--env KEY[=VALUE]` (repeatable) — populate `sigil.env()`. `KEY=VALUE` sets a literal value (only the first `=` splits, so values may contain `=`); bare `KEY` passes the value through from sigil's own process environment, keeping secrets off the command line. Strict allowlist: only named keys are visible to the scenario; duplicates are last-wins.
 - `--allow-cross-origin` — disable endpoint pinning. By default every HTTP call and redirect is confined to the `--endpoint` origin; a cross-origin `base_url` is a runtime error. This flag restores the old unconfined behavior — only use it for trusted scenarios (see the security note in `--help`).
-- `--json` — emit a machine-readable report on stdout instead of human output. Per-scenario entries: `{id, title?, status, duration_ms, failure_class?, checks, expects, error?, diagnostic?}`. `failure_class` is `"assertion"` (a behavior problem) or `"crash"` (a tooling/scenario problem), omitted for passing scenarios.
+- `--json` — emit a machine-readable report on stdout instead of human output. Per-scenario entries: `{id, title?, status, duration_ms, failure_class?, checks, expects, error?, diagnostic?}`. `failure_class` is `"assertion"` (a behavior problem), `"crash"` (a tooling/scenario problem), or `"pinning"` (an endpoint-pinning violation — a cross-origin `base_url` override or redirect blocked by the runtime origin gate), omitted for passing scenarios.
 
 For PR evaluation, scoring, ledger writes, baseline comparison, and decision policy use `sigil eval` instead.
 
