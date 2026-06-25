@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [0.26.0] — 2026-06-25 — Decision-Gate Hardening + Structured Judge
+
+- **Security gates fail closed.** Mark a scanner `required` and a scanner that can't run — missing binary, timeout, or unparseable output — now blocks the merge instead of silently passing. New per-scanner modes (`disabled` / `advisory` / `required`) and a configurable per-scanner timeout (default 120s).
+- **The security report now reaches the decision.** Fixed: scan findings were not being carried into `sigil decide`, so a failing security gate didn't actually influence ALLOW / REVIEW / BLOCK. Findings are now round-tripped from the eval through to the decision end-to-end.
+- **An eval without durable evidence can't ALLOW.** If sigil can't persist the report, scenario evidence, eval DAG, or ledger event, the eval is marked degraded and the decision drops to REVIEW — a score you can't reproduce shouldn't earn autonomy.
+- **More reliable LLM judging.** The judge now uses structured tool/function calling instead of parsing prose, so verdicts come back as typed values — no more "the model wrote an essay instead of JSON," and no fragile score-scraping. Works across OpenAI-compatible, tool-calling, and command providers, with a JSON-mode fallback; malformed output is a judge failure, never a silent pass.
+- **Faster ad-hoc contracts.** A one-line scenario — `return { run = function() ... end }` — now runs as-is: capabilities are inferred from the body and `priority` is optional on the `sigil run` path. Committed suites still get the full strict `sigil scenario lint`.
+- **New guide: the contract handoff.** An end-to-end walkthrough of authoring a contract in sigil, packaging it as a `.wic`, and verifying it as a provider with wraith — including the exit-code and `failure_class` mapping.
+
 ## [0.25.0] — 2026-06-13 — Intent-Contracts Surface + Untrusted-Input Hardening
 
 - **`sigil.check(expr, label)`** — advisory checks: a nonfatal tier alongside `expect()`. Outcomes are recorded in the report but never fail the scenario or change the exit code. The expression is evaluated defensively, so a check against a field that drifted away (e.g. `auth.json.id`) records an evaluation error instead of crashing the run. Each appears in a per-scenario `checks[]` block.
