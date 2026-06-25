@@ -34,6 +34,7 @@ export default defineConfig({
           label: 'Guides',
           items: [
             { label: 'Writing Scenarios', slug: 'guides/writing-scenarios' },
+            { label: 'The .wic Handoff (Wraith)', slug: 'guides/wic-handoff' },
             { label: 'CI Integration', slug: 'guides/ci-integration' },
             { label: 'Configuring Judges', slug: 'guides/configuring-judges' },
           ],
