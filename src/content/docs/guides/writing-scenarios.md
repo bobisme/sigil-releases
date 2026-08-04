@@ -7,22 +7,61 @@ Scenarios are plain Lua files that return a table. `sigil`, `expect`, and `invar
 
 ## File layout
 
+Scenario source lives at the project root under `scenarios/<service>/`. `.sigil/`
+holds only tool state — config, blobs, ledger, proofs.
+
 ```
-.sigil/scenarios/<service>/
-  visible/
-    auth/
-      login.lua
-      logout.lua
-    billing/
-      checkout.lua
-  holdout/
-    auth/
-      password-reset.lua.age     # age-encrypted
+scenarios/<service>/
+  auth/
+    login.lua                     # visible
+    logout.lua                    # visible
+    password-reset.lua.age        # holdout — age-encrypted
+  billing/
+    checkout.lua
+    refund.staged.lua             # generated, awaiting `sigil scenario promote`
   lib/
     auth.lua                      # shared helpers — require('lib.auth')
 ```
 
-Scenario ID is derived from the file path (`visible/auth/login.lua` → `auth/login`). Never declare it in the file.
+**The file extension is the source of truth for visibility.** `foo.lua` is
+visible, `foo.lua.age` is an age-encrypted holdout, `foo.staged.lua` is
+generated output awaiting promotion (never in an eval set, never sealed).
+There are no `visible/` or `holdout/` directories, so a plaintext file sitting
+in a directory that claims it is a holdout — a leaked holdout — cannot be
+represented. Promoting a visible scenario to a holdout is an encrypt in place:
+same path, same id, and `git log --follow` still works.
+
+`lib/` is the only reserved directory name.
+
+Scenario ID is derived from the path under `scenarios/<service>/` with the
+extension stripped (`auth/login.lua` → `auth/login`, `auth/login.lua.age` →
+`auth/login`). Never declare it in the file — and note that a scenario keeps its
+id when promoted to holdout.
+
+:::note[Upgrading from 0.26 or earlier?]
+Scenarios used to live in `.sigil/scenarios/<svc>/{visible,holdout,staging}/`.
+Run `sigil migrate` to convert — dry-run by default, add `--apply` to write. It
+uses `git mv` so history follows each file, and verifies the scenario-id set is
+identical before and after. Ids are unchanged, so ledger history stays
+comparable.
+:::
+
+### Multiple roots
+
+By default sigil looks in `scenarios/`. A monorepo can colocate scenarios with
+the service they exercise by declaring roots explicitly:
+
+```toml
+[[scenarios]]
+path = "scenarios"                  # holds per-service subdirectories
+
+[[scenarios]]
+path = "services/api/scenarios"     # IS the api service's scenarios
+service = "api"
+```
+
+Each root resolves its own `lib/`, so `services/api/scenarios/health.lua` reads
+`services/api/scenarios/lib/` — not another service's helpers.
 
 ## Minimum scenario
 
@@ -156,7 +195,40 @@ The `policy.capabilities` field is static metadata. `sigil scenario lint` reject
 - `math.random` / `math.randomseed` neutered — use `sigil.gen.*`.
 - `load`, `loadstring`, `loadfile` disabled.
 - `require('sigil')` → error (it is a pre-injected global).
-- `require('lib.X')` resolves only inside `.sigil/scenarios/<service>/lib/`.
+- `require('lib.X')` is the only permitted `require`, and traversal in the module
+  name is rejected.
+
+### Where `require('lib.X')` resolves
+
+In a configured project (`sigil eval`, `sigil scenario run`, generation) it is
+`<scenario root>/<service>/lib/X.lua`, where the scenario root is the
+`[[scenarios]]` entry the scenario was discovered under.
+
+Under `sigil run`, which takes paths and needs no `sigil.toml`, it is
+`<anchor>/lib/X.lua` — the anchor being the path you named on the command line:
+a directory argument itself, or a file argument's parent directory. That is the
+same anchor the scenario id is measured against, so `lib/` sits at the top of
+the tree you pointed at:
+
+```sh
+sigil run scenarios/                 # → scenarios/lib/X.lua, for every
+                                     #   scenario under it, however nested
+sigil run scenarios/contract.lua     # → scenarios/lib/X.lua
+sigil run scenarios/api/contract.lua # → scenarios/api/lib/X.lua
+```
+
+Pass `--lib-dir <DIR>` to name the directory outright for every scenario in the
+run.
+
+:::caution[Embedding sigil as a runner]
+If your tool stages a scenario tree into a temp directory and shells out to
+`sigil run` — verifying a contract artifact, say — put `lib/` at the root of the
+tree you pass, or name it with `--lib-dir`. Both are stable contracts. Do not
+stage against whatever path a failing `require` happens to report: the fallback
+sigil uses when it has neither is an internal detail, and it is *relative*, so
+it resolves against sigil's working directory rather than your staged tree.
+Fixed in 0.28.0.
+:::
 
 ## Editor support
 

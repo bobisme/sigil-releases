@@ -176,7 +176,7 @@ aggregate: 38 {ok:pass} · 2 {fail:fail} · decision = {warn:REVIEW}
 // =========================================================
 // LUA SCENARIO — tokenize at build time
 // =========================================================
-const LUA_CODE = `-- .sigil/scenarios/api/visible/billing/upgrade.lua
+const LUA_CODE = `-- scenarios/api/billing/upgrade.lua
 return {
   title    = "Upgrade a free account to the Pro plan via the dashboard",
   priority = "P0",
@@ -297,7 +297,7 @@ const callouts: Record<number, { id: string; label: string; api: string; note: s
 // =========================================================
 const OPERATOR_FRAME = `× scenario failed: billing/upgrade  [P0]
 
-   ╭─[.sigil/scenarios/api/visible/billing/upgrade.lua:33:5]
+   ╭─[scenarios/api/billing/upgrade.lua:33:5]
    │
 33 │     expect(result.total_cents == 9900)
    │     ──────────────────┬───────────────
@@ -625,7 +625,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
       <div class="prov-cell"><div class="prov-k">scenario set</div><div class="prov-v">set:auth.v12</div></div>
       <div class="prov-cell"><div class="prov-k">rng seed</div><div class="prov-v">0xDEADB2B5</div></div>
       <div class="prov-cell"><div class="prov-k">control ref</div><div class="prov-v">ctrl:2026.04.12</div></div>
-      <div class="prov-cell"><div class="prov-k">evaluator</div><div class="prov-v">sigil@0.26.0</div></div>
+      <div class="prov-cell"><div class="prov-k">evaluator</div><div class="prov-v">sigil@0.28.0</div></div>
     </div>
   </section>
   </main>
@@ -671,7 +671,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
           <span>sigil scenario generate --from <span style="color:var(--seal)">docs/specs/billing-upgrade.md</span> --service api</span>
         </div>
         <div class="md-generate-note">
-          LLM test plan → scenario code → three-stage validation → <a href="#scenarios" style="color:var(--seal)">visible/ + holdout/ bundles</a>.
+          LLM test plan → scenario code → three-stage validation → <a href="#scenarios" style="color:var(--seal)">visible + holdout bundles</a>.
         </div>
       </div>
     </div>
@@ -694,7 +694,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
     <div class="lua-block">
       <div class="lua-header">
         <div class="lua-file">
-          <span class="mono" style="color:var(--ink-400)">.sigil/scenarios/api/visible/billing/</span><span class="mono" style="color:var(--bone)">upgrade.lua</span>
+          <span class="mono" style="color:var(--ink-400)">scenarios/api/billing/</span><span class="mono" style="color:var(--bone)">upgrade.lua</span>
         </div>
         <div class="lua-meta">
           <span class="caps" style="color:var(--ink-500)">VISIBLE · TIER 1·2·3</span>
@@ -1032,7 +1032,7 @@ const nodePositions = STAGES.map((s, i) => ({ ...s, x: PAD + i * STEP, y: Y_LINE
     </div>
     <div class="footer-bottom">
       <span>© 2026 · Elastic License 2.0 · signed builds · Built by <a href="https://bob.cx">Bob</a></span>
-      <span class="seal">sigil@0.26.0</span>
+      <span class="seal">sigil@0.28.0</span>
     </div>
   </footer>
 

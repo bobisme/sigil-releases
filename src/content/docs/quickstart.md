@@ -28,19 +28,23 @@ Use the fixture in `examples/fixture-service/` from the release repo to try the 
 sigil init --service api
 ```
 
-This creates `sigil.toml` and the `.sigil/` directory layout for the `api` service.
+This creates `sigil.toml`, the `.sigil/` state directory, and `scenarios/api/`.
 
 ## 2. Add a scenario
 
+Scenario source lives at the project root under `scenarios/<service>/`, where it
+is findable and editable like any other source. `.sigil/` holds only tool state —
+config, blobs, ledger, proofs.
+
 ```sh
-mkdir -p .sigil/scenarios/api/visible/smoke
-$EDITOR .sigil/scenarios/api/visible/smoke/health.lua
+mkdir -p scenarios/api/smoke
+$EDITOR scenarios/api/smoke/health.lua
 ```
 
 A minimal health-check scenario:
 
 ```lua
--- .sigil/scenarios/api/visible/smoke/health.lua
+-- scenarios/api/smoke/health.lua
 return {
   title    = "Service responds to /health",
   priority = "P0",
@@ -114,6 +118,7 @@ Read [CI Integration](/guides/ci-integration/) for the full workflow, permission
 | `REVIEW` appears unexpectedly | Inspect the latest eval, threshold config, trust state, and ledger freshness. |
 | Holdout key unavailable | Ensure CI has the service scenario key, such as `SIGIL_SCENARIOS_KEY`. |
 | GitHub status does not post | Confirm token permissions include `statuses: write` and `pull-requests: write`. |
+| No scenarios found, but the files are there | If they live under `.sigil/scenarios/`, this project predates 0.27. Run `sigil migrate` (dry-run by default; add `--apply`). |
 
 ## Next steps
 

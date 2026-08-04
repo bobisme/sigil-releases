@@ -10,10 +10,12 @@ Run `sigil --help` or `sigil <subcommand> --help` for up-to-date usage. This pag
 ### `sigil eval`
 
 ```
-sigil eval <pr-ref> --service <svc> [options]
+sigil eval <pr-ref> --service <svc> [--failure-artifact <FILE>] [options]
 ```
 
 Deploy PR + baseline, run scenarios against both, score, and append `eval.complete` to the ledger.
+
+- `--failure-artifact <FILE>` — write a fixed-vocabulary **failure phase** as JSON on every terminal outcome, including runs that produce no eval report. Lets a caller tell a failed deploy leg from an undecryptable scenario set from an uncovered strict MUST from an internal evaluator error, without parsing stderr. Deploy phases name the leg and the stage, e.g. `deploy.baseline.health-wait`. The vocabulary is closed, and the artifact carries only that vocabulary plus config *field names* — never scenario ids, endpoints, rubric text, config values, or raw error strings, so it stays safe where holdout secrecy matters. Fail-closed on both sides: an unrecognized, malformed, or missing artifact never reads as success. `$SIGIL_FAILURE_ARTIFACT` is honored when the flag is absent. Each structured deployment failure also lists which config fields came from the working checkout, the control snapshot, a CLI flag, or the environment — field names and sources only.
 
 ### `sigil decide`
 
@@ -22,6 +24,8 @@ sigil decide <pr-ref> --service <svc>
 ```
 
 Apply the threshold policy to the most recent eval for this PR and emit the decision. Exit 0 (ALLOW), 1 (REVIEW), 2 (BLOCK).
+
+The **policy mode caps the decision independently of trust**: only `auto` can ever ALLOW, so a clean evaluation in `shadow` or `advisory` returns REVIEW. Since 0.28.0 the output says so rather than leaving you to infer it — the rationale carries `shadow_mode_cap` / `advisory_mode_cap` / `policy_mode_unset_cap`, and `--json` adds `policy_mode`, `mode_ceiling`, `mode_capped`, and the full `lattice`. A REVIEW that came from actual findings carries no cap code, so an operator can confirm a clean shadow run without opening a protected report.
 
 ### `sigil ci`
 
@@ -36,12 +40,15 @@ sigil ci owner/repo#42 --service <svc> [--comment] [--auto-merge] [--dry-run]
 ### `sigil run`
 
 ```
-sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL>] [--env KEY[=VALUE]] [--allow-cross-origin] [--json]
+sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL|NAME=URL>] [--env KEY[=VALUE]] [--lib-dir <DIR>] [--allow-origin <URL>] [--allow-cross-origin] [--json]
 ```
 
 Minimal scenario runner — runs `.lua` files directly without requiring `.sigil/sigil.toml`, the eval pipeline, or a ledger. Each positional is a file or a directory (recursive walk for `*.lua`, `lib/` skipped). `--filter` is substring-matched against scenario file path and `title` (repeatable, OR'd). `--tag` / `--exclude-tag` use the same semantics as `sigil scenario run` (exclude always wins). `--endpoint` is optional — surfaces a clear error at first HTTP call if a scenario needs one. Exit codes: `0` all passed, `1` some failed, `2` zero scenarios matched (pytest convention).
 
 - `--env KEY[=VALUE]` (repeatable) — populate `sigil.env()`. `KEY=VALUE` sets a literal value (only the first `=` splits, so values may contain `=`); bare `KEY` passes the value through from sigil's own process environment, keeping secrets off the command line. Strict allowlist: only named keys are visible to the scenario; duplicates are last-wins.
+- `--lib-dir <DIR>` — the directory `require('lib.<module>')` resolves inside, for every scenario in the run. Defaults to the **discovery anchor** joined with `lib`: a directory argument itself, or a file argument's parent — the same anchor the scenario id is derived from. Name it explicitly when staging a tree whose helpers do not sit there. Validated up front, so a missing directory aborts the invocation rather than surfacing as a require failure partway through the suite. See [Writing Scenarios](/guides/writing-scenarios/#where-requirelibx-resolves).
+- `--endpoint <NAME=URL>` — declare a **named service** reachable from Lua as `sigil.service("name")`, alongside the bare-URL form that sets the primary base URL. Repeatable. Each named origin is validated up front and folded into the pin set, so a cross-service assertion (a second twin, say) stays inside pinning rather than needing it disabled.
+- `--allow-origin <URL>` (repeatable) — allowlist one specific extra origin on top of `--endpoint`, keeping pinning enforced for everything else. Each value must be a bare `scheme://host[:port]`. Prefer this over `--allow-cross-origin` whenever the extra origins are known in advance.
 - `--allow-cross-origin` — disable endpoint pinning. By default every HTTP call and redirect is confined to the `--endpoint` origin; a cross-origin `base_url` is a runtime error. This flag restores the old unconfined behavior — only use it for trusted scenarios (see the security note in `--help`).
 - `--json` — emit a machine-readable report on stdout instead of human output. Per-scenario entries: `{id, title?, status, duration_ms, failure_class?, checks, expects, error?, diagnostic?}`. `failure_class` is `"assertion"` (a behavior problem), `"crash"` (a tooling/scenario problem), or `"pinning"` (an endpoint-pinning violation — a cross-origin `base_url` override or redirect blocked by the runtime origin gate), omitted for passing scenarios.
 
@@ -109,6 +116,34 @@ sigil trust show --service <svc>
 ```
 sigil init --service <svc>
 ```
+
+Scaffold `.sigil/` (config and tool state) plus `scenarios/<svc>/` at the project root.
+
+### `sigil migrate`
+
+```
+sigil migrate [--apply]
+```
+
+Upgrade a project from the pre-0.27 layout — `.sigil/scenarios/<svc>/{visible,holdout,staging}/` — to `scenarios/<svc>/` with visibility carried by the file extension. **Dry-run by default**; add `--apply` to write.
+
+Uses `git mv` so rename detection follows each file's history. Idempotent, and it verifies the scenario-id set is identical before and after, so a migration that would silently drop or rename a scenario aborts rather than reporting success. It refuses a dirty git worktree, refuses when both layouts are populated, and refuses to move an unencrypted file out of `holdout/` — in the new layout that name *means* visible, so migrating it would publish a holdout.
+
+Scenario ids are unchanged, so ledger history stays comparable. Holdout set hashes do change once, at migration, because re-sealing yields new ciphertext; a `scenario.layout_migrated` ledger event is recorded so `replay` / `diff` can explain the discontinuity instead of presenting prior evals as corrupt.
+
+:::note[Nothing to migrate?]
+"Already migrated: no `.sigil/scenarios/` directory found" is also what you get if your project never owned a scenario tree — for instance a tool that embeds sigil as a runner over scenarios it stages itself. That is a correct answer to a different question; see [Embedding sigil as a runner](/guides/writing-scenarios/#where-requirelibx-resolves).
+:::
+
+### `sigil keys`
+
+```
+sigil keys add <name> <age1...> [--force]
+sigil keys add-self [--force]
+sigil keys rotate
+```
+
+Manage the age recipients that holdout scenarios are encrypted to (the [`[keys]`](/reference/configuration/#keys) table). `add` / `add-self` create the table when sigil.toml lacks one, and re-adding a name with the same recipient is a successful no-op that never prompts — safe to run repeatedly from headless provisioning. Re-adding a name with a *different* recipient confirms interactively, and fails closed without mutating sigil.toml when there is no terminal; `--force` replaces it non-interactively. After adding a recipient, run `rotate` as a current key-holder to re-seal existing holdouts to it.
 
 ### `sigil deploy` / `sigil teardown`
 

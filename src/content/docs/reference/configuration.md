@@ -38,13 +38,53 @@ health_timeout_s = 60
 env_file         = ".env.test"
 ```
 
-## `[scenarios]`
+## `[[scenarios]]`
+
+Where scenario source lives. Optional — with no entry, sigil looks in
+`scenarios/` at the project root. Note the double brackets: this is an array of
+tables, so a monorepo can declare several roots.
 
 ```toml
-[scenarios]
-root = ".sigil/scenarios"           # location of scenario files
-key  = "age1..."                    # public age key for holdout encryption
+[[scenarios]]
+path = "scenarios"                  # holds one subdirectory per service
+
+[[scenarios]]
+path = "services/api/scenarios"     # IS the api service's scenarios
+service = "api"                     # …because `service` is set
 ```
+
+| Key | Required | Meaning |
+|---|---|---|
+| `path` | yes | Directory, relative to the project root (the directory containing `.sigil/`). |
+| `service` | no | When set, this directory *is* that service's scenarios, with no service-name level. When absent, it holds one subdirectory per service. |
+
+Discovery reads every root. Writes — `sigil init`, generation staging,
+promotion — go to the first entry.
+
+:::caution[Changed in 0.27.0]
+This replaced a `[scenarios]` table with `root` and `key` keys. The old form is
+not an error, it is simply ignored, so a project still carrying it silently
+falls back to `scenarios/`. Holdout recipients moved to [`[keys]`](#keys).
+:::
+
+## `[keys]`
+
+age recipients for encrypted holdout scenarios. Every `.lua.age` holdout is
+encrypted to every recipient listed here.
+
+```toml
+[keys]
+ci       = "age1..."
+reviewer = "age1..."
+```
+
+Manage with `sigil keys add <name> <age1...>` or `sigil keys add-self`; either
+creates the table if absent. After adding a recipient, run `sigil keys rotate`
+as a current key-holder to re-seal existing holdouts to it.
+
+Promoting a scenario to holdout **fails closed** when no recipients are
+configured: an unencrypted holdout would be indistinguishable from a visible
+scenario.
 
 ## `[judge]`
 
@@ -91,17 +131,28 @@ p1 = { allow = 0.90, review = 0.75 }
 p2 = { allow = 0.80, review = 0.60 }
 ```
 
-## `[scenarios.env]`
+## Environment variables in scenarios
 
-Allow-list of env vars exposed to scenarios via `sigil.env()`:
+`sigil.env("KEY")` reads from a strict per-key allowlist — anything not named is
+invisible to the scenario and returns nil.
 
-```toml
-[scenarios.env]
-ALICE_PASSWORD = { from = "ALICE_PASSWORD" }      # pass through
-TEST_API_KEY   = { from = "CI_TEST_API_KEY" }     # rename from another var
+The allowlist is populated by `sigil run --env` (repeatable, docker-style):
+
+```sh
+sigil run scenarios/ --env TEST_API_KEY=abc123   # explicit value
+sigil run scenarios/ --env ALICE_PASSWORD        # pass through from sigil's own
+                                                 # environment — keeps secrets
+                                                 # off the command line
 ```
 
-Anything not listed is invisible to scenarios.
+:::caution[Not yet available in `sigil eval`]
+There is no config-file equivalent. Earlier versions of this page documented a
+`[scenarios.env]` table; it was never implemented, and `sigil eval` currently
+passes an empty allowlist, so `sigil.env()` returns nil for every key under
+`eval`. Scenarios that need credentials during a full evaluation should read
+them through the deployed service's own environment (`[deploy]`) rather than
+`sigil.env()`. Tracked as bn-3g11.
+:::
 
 ## `[eval]`
 
