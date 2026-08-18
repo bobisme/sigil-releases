@@ -5,6 +5,12 @@ description: Run Sigil against a pull request, compare it with a baseline, and e
 
 At the end of this quickstart, Sigil will evaluate a PR ref against a baseline and emit an auditable `ALLOW`, `REVIEW`, or `BLOCK` decision. In GitHub Actions, the same loop posts a status check that can protect your merge queue.
 
+:::tip[Testing a running service instead?]
+If you already have a service running and just want to run Lua scenarios
+against it — no Docker Compose, no `sigil.toml`, no ledger — see
+[Quickstart: Test a Running Service](/quickstart-local/).
+:::
+
 ## Prerequisites
 
 - A `sigil` binary on your `PATH`:

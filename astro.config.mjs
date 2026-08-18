@@ -16,7 +16,8 @@ export default defineConfig({
         {
           label: 'Getting Started',
           items: [
-            { label: 'Quickstart', slug: 'quickstart' },
+            { label: 'Quickstart: Test a Running Service', slug: 'quickstart-local' },
+            { label: 'Quickstart: Gate an Agent PR', slug: 'quickstart' },
             { label: 'Installation', slug: 'installation' },
           ],
         },
