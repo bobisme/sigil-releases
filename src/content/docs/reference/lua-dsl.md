@@ -41,20 +41,22 @@ Returns:
 }
 ```
 
-## `sigil.exec(cmd, [args], [opts])`
+## `sigil.exec(command, [opts])`
 
 **Requires capability**: `exec`
 
 ```lua
-local result = sigil.exec("redis-cli", { "KEYS", "session:*" })
-expect(result.exit_code == 0)
+local result = sigil.exec("redis-cli KEYS 'session:*'")
+expect(result.status == 0)
 ```
 
-Returns `{ exit_code, stdout, stderr, elapsed_ms }`.
+Runs `sh -c <command>` on the **host running sigil** — not inside the deployed container — with the scenario's environment plus `SIGIL_ENV_URL`, `SIGIL_SCENARIO_ID`, and `SIGIL_SERVICE`. `command` is a single shell string; there is no separate argument array. `opts` accepts `cwd`, `env` (a `key = value` table merged over the scenario env), and `stdin`.
+
+Returns `{ status, stdout, stderr }`. `status` is the process exit code, or `-1` if the process could not be spawned or ran past the scenario's time budget.
 
 ## `sigil.env(name)`
 
-Reads an environment variable from the evaluator's scrubbed env. Only names declared in `sigil.toml`'s `[scenarios.env]` are visible; others return `nil`.
+Reads from a **strict per-key allowlist**, never the ambient process environment; a key that is not on the allowlist returns `nil`. Under `sigil run` the allowlist is the repeatable `--env KEY[=VALUE]` flag — see [Configuration → Environment variables in scenarios](/reference/configuration/#environment-variables-in-scenarios) for how it is populated in each mode.
 
 ## `sigil.gen.*`
 
