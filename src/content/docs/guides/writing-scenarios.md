@@ -220,7 +220,10 @@ sigil run scenarios/api/contract.lua # → scenarios/api/lib/X.lua
 ```
 
 Pass `--lib-dir <DIR>` to name the directory outright for every scenario in the
-run.
+run. If a helper is missing, the error says which directory was searched — the
+discovery anchor's `lib/`, or the `--lib-dir` you passed — and suggests
+`--lib-dir` when you did not already give one, so a nested file argument whose
+anchor is its own parent does not read as a mystery.
 
 :::caution[Embedding sigil as a runner]
 If your tool stages a scenario tree into a temp directory and shells out to

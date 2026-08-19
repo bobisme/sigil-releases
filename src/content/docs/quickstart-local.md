@@ -98,14 +98,37 @@ for how `sigil run` derives that path from the directory you named on the
 command line.
 
 **Origin pinning**: by default every live HTTP call is confined to the
-`--endpoint` origin (plus any declared named-service origins) — a
-cross-origin `base_url` or redirect is a runtime error. For a one-off call
+run's declared origins — the `--endpoint` origin plus every named-service
+origin — and a cross-origin `base_url` or redirect is a runtime error. That
+holds for a services-only run too: declare only `--endpoint name=url` pairs
+(no bare `--endpoint`) and the run is pinned to exactly those services. For a one-off call
 to a known extra origin without declaring a named service, use
 `--allow-origin <URL>` (repeatable) instead; it widens the pin set by
 exactly that origin, leaving pinning enforced for everything else.
 `--allow-cross-origin` disables pinning entirely — reserve it for suites
 where every scenario file is fully trusted and the origins are not knowable
 in advance, since it re-opens every origin, not just the one you need.
+
+## Reset between scenarios
+
+If the box keeps state, reset it before every scenario. `--reset` sends one
+HTTP request per scenario — to the primary `--endpoint`, or to a named
+service with `NAME=`:
+
+```sh
+sigil run scenarios/ --endpoint http://localhost:8080 \
+  --reset POST:/__sigil_test_reset \
+  --endpoint taxonomy=http://localhost:8081 \
+  --reset taxonomy=POST:/__sigil_test_reset
+```
+
+Any 2xx is success. For hooks that need headers, a body, or an exact status,
+put them in a JSON array and pass `--resets-from <path>` (`-` reads stdin) —
+the entries have the same fields as a `[[scenario.reset]]` table in
+`sigil.toml` (`method`, `path`, `service`, `headers`, `body`,
+`expected_status`). Everything is validated before the first scenario runs;
+a hook that fails at run time fails that scenario without executing it
+(`failure_class = "crash"`).
 
 ## Secrets
 

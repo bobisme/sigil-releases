@@ -165,7 +165,7 @@ path    = "/__sigil_test_reset"
 service = "twin-b"                    # must be declared in [eval] services
 ```
 
-Paths stay relative per target, so a reset can never leave the pinned origin set; a `service` that `[eval] services` does not declare is a config error at load time. Hooks fire under `sigil scenario run` and under `sigil eval` — in eval each side (PR deploy, then baseline deploy) is reset before that side runs, and a failed reset fails that side's scenario without running its body (fail-closed, never ALLOW). Because a reset wipes state shared by the whole scenario set, `sigil eval` refuses hooks when `[eval] scenario_concurrency > 1` — set it to 1 or drop the hooks. `sigil run` reads no `sigil.toml` and has no hook; reset from Lua there.
+Paths stay relative per target, so a reset can never leave the pinned origin set; a `service` that `[eval] services` does not declare is a config error at load time. Hooks fire under `sigil scenario run` and under `sigil eval` — in eval each side (PR deploy, then baseline deploy) is reset before that side runs, and a failed reset fails that side's scenario without running its body (fail-closed, never ALLOW). Because a reset wipes state shared by the whole scenario set, `sigil eval` refuses hooks when `[eval] scenario_concurrency > 1` — set it to 1 or drop the hooks. `sigil run` reads no `sigil.toml`; it takes the same hooks from the command line — `--reset [NAME=]METHOD:/path` (repeatable) or `--resets-from <json>` (an array of entries with exactly these fields) — validated by the same rules. See [CLI → `sigil run`](/reference/cli/#sigil-run).
 
 ### `[scenario.env]` — environment variables in scenarios
 

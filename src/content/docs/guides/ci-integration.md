@@ -86,6 +86,8 @@ Configure your protected branches (typically `main`) to require the `sigil/<serv
 
 When Sigil is at **SHADOW** trust, status posts are tagged as non-required — you can see them without enforcing them. This is how you calibrate before turning the gate on.
 
+The policy mode caps the decision independently of findings: only `auto` can ever ALLOW, so a clean eval under `shadow`, `advisory`, or an unset mode returns REVIEW. `sigil ci` says which it is. A capped clean run posts `sigil: REVIEW — clean (8/8 passed); capped by shadow mode (ceiling: review)` and the PR comment carries the `shadow_mode_cap` rationale; a REVIEW with real findings keeps its failure/regression counts and carries no cap vocabulary. Exit codes and commit-status states are the same either way (a capped REVIEW is still exit 1 / `failure`). `--format json` exposes the same facts as `policy_mode`, `mode_ceiling`, `mode_capped`, and `mode_cap_reason`, so a job can branch on a cap without parsing prose.
+
 ## Testing with wraith
 
 For local or CI testing without hitting the real GitHub API, point `--github-api-url` at a [wraith](https://wraith.cx) twin of the GitHub API. Sigil's integration tests use exactly this pattern.
