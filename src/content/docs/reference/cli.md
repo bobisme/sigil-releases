@@ -40,7 +40,7 @@ sigil ci owner/repo#42 --service <svc> [--comment] [--auto-merge] [--dry-run]
 ### `sigil run`
 
 ```
-sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL|NAME=URL>] [--env KEY[=VALUE]] [--lib-dir <DIR>] [--allow-origin <URL>] [--allow-cross-origin] [--json]
+sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL|NAME=URL>] [--endpoints-from <PATH>] [--env KEY[=VALUE]] [--lib-dir <DIR>] [--allow-origin <URL>] [--allow-cross-origin] [--deny-capability <NAME>] [--json]
 ```
 
 Minimal scenario runner — runs `.lua` files directly without requiring `.sigil/sigil.toml`, the eval pipeline, or a ledger. Each positional is a file or a directory (recursive walk for `*.lua`, `lib/` skipped). `--filter` is substring-matched against scenario file path and `title` (repeatable, OR'd). `--tag` / `--exclude-tag` use the same semantics as `sigil scenario run` (exclude always wins). `--endpoint` is optional — surfaces a clear error at first HTTP call if a scenario needs one. Exit codes: `0` all passed, `1` some failed, `2` zero scenarios matched (pytest convention).
@@ -48,9 +48,11 @@ Minimal scenario runner — runs `.lua` files directly without requiring `.sigil
 - `--env KEY[=VALUE]` (repeatable) — populate `sigil.env()`. `KEY=VALUE` sets a literal value (only the first `=` splits, so values may contain `=`); bare `KEY` passes the value through from sigil's own process environment, keeping secrets off the command line. Strict allowlist: only named keys are visible to the scenario; duplicates are last-wins.
 - `--lib-dir <DIR>` — the directory `require('lib.<module>')` resolves inside, for every scenario in the run. Defaults to the **discovery anchor** joined with `lib`: a directory argument itself, or a file argument's parent — the same anchor the scenario id is derived from. Name it explicitly when staging a tree whose helpers do not sit there. Validated up front, so a missing directory aborts the invocation rather than surfacing as a require failure partway through the suite. See [Writing Scenarios](/guides/writing-scenarios/#where-requirelibx-resolves).
 - `--endpoint <NAME=URL>` — declare a **named service** reachable from Lua as `sigil.service("name")`, alongside the bare-URL form that sets the primary base URL. Repeatable. Each named origin is validated up front and folded into the pin set, so a cross-service assertion (a second twin, say) stays inside pinning rather than needing it disabled.
+- `--endpoints-from <PATH>` — load named services from a flat JSON object `{ "name": "http://host:port", ... }` (`-` reads stdin), so a tool that already knows the box's service map can feed sigil directly: `rig env --format json | sigil run scenarios/ --endpoint http://a:8080 --endpoints-from -`. Every key becomes a named service exactly as if `--endpoint name=url` had been passed — same origin validation, same pin set. The primary endpoint stays argv-only; a name declared in both the file and `--endpoint` is an error; a bad file, bad JSON, or bad origin aborts before any scenario runs.
 - `--allow-origin <URL>` (repeatable) — allowlist one specific extra origin on top of `--endpoint`, keeping pinning enforced for everything else. Each value must be a bare `scheme://host[:port]`. Prefer this over `--allow-cross-origin` whenever the extra origins are known in advance.
 - `--allow-cross-origin` — disable endpoint pinning. By default every HTTP call and redirect is confined to the `--endpoint` origin; a cross-origin `base_url` is a runtime error. This flag restores the old unconfined behavior — only use it for trusted scenarios (see the security note in `--help`).
-- `--json` — emit a machine-readable report on stdout instead of human output. Per-scenario entries: `{id, title?, status, duration_ms, failure_class?, checks, expects, error?, diagnostic?}`. `failure_class` is `"assertion"` (a behavior problem), `"crash"` (a tooling/scenario problem), or `"pinning"` (an endpoint-pinning violation — a cross-origin `base_url` override or redirect blocked by the runtime origin gate), omitted for passing scenarios.
+- `--deny-capability <NAME>` (repeatable) — refuse to run scenarios that declare or use this capability. Nothing is denied by default; an unknown name aborts the invocation. Enforced fail-closed: a scenario that declares or calls a denied capability fails lint (`E007`) before it executes — reported with `failure_class = "capability"` — and the runtime installs a denying stub regardless of what the scenario declared. **`sigil.exec` runs `sh -c <command>` on the host running sigil, not inside any container**; pass `--deny-capability exec` when running third-party or agent-authored scenarios. Projects with a `sigil.toml` set the same list in `[eval] denied_capabilities`.
+- `--json` — emit a machine-readable report on stdout instead of human output. Per-scenario entries: `{id, title?, status, duration_ms, failure_class?, checks, expects, error?, diagnostic?}`. `failure_class` is `"assertion"` (a behavior problem), `"crash"` (a tooling/scenario problem), `"pinning"` (an endpoint-pinning violation — a cross-origin `base_url` override or redirect blocked by the runtime origin gate), or `"capability"` (a capability denied by `--deny-capability` / `[eval] denied_capabilities`), omitted for passing scenarios.
 
 For PR evaluation, scoring, ledger writes, baseline comparison, and decision policy use `sigil eval` instead.
 
@@ -117,7 +119,15 @@ sigil trust show --service <svc>
 sigil init --service <svc>
 ```
 
-Scaffold `.sigil/` (config and tool state) plus `scenarios/<svc>/` at the project root.
+Scaffold `.sigil/` (config and tool state) plus `scenarios/<svc>/` at the project root. The generated `sigil.toml` starts with a `#:schema https://runsigil.com/schemas/sigil-config.schema.json` line so editors with TOML schema support offer completion and flag unknown keys.
+
+### `sigil schema`
+
+```
+sigil schema config
+```
+
+Print the JSON Schema for `sigil.toml` — generated from sigil's own config types and drift-tested in CI, so it is the authoritative list of every section, key, default, and enum. The same document is published at https://runsigil.com/schemas/sigil-config.schema.json. Validate a config against it in CI, or `sigil schema config > schemas/sigil-config.schema.json` to vendor it.
 
 ### `sigil migrate`
 

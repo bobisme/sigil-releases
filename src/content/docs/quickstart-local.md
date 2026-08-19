@@ -86,6 +86,11 @@ declare named services. `sigil.service("taxonomy")` returns a handle with
 the same `get/post/put/patch/delete` verbs, permanently bound to that
 service's origin.
 
+If a tool already knows the box's service map, hand it over as a file instead of
+shell-quoting it: `--endpoints-from endpoints.json` takes a flat JSON object
+`{ "taxonomy": "http://localhost:8081", ... }` (`-` reads stdin), and every key
+becomes a named service exactly as if you had typed `--endpoint name=url`.
+
 Sharing a helper (auth headers, a session setup) across scenarios that call
 multiple services works the same way as any shared Lua helper: put it in
 `lib/` and `require('lib.x')`. See [Where `require('lib.X')` resolves](/guides/writing-scenarios/#where-requirelibx-resolves)
@@ -126,6 +131,20 @@ sigil run scenarios/ --endpoint http://localhost:8080 --json
 lines; exit codes are unchanged. `--filter <SUBSTR>` (repeatable, OR'd)
 matches scenario path or title; `--tag <T>` / `--exclude-tag <T>` filter on
 declared tags, with exclude always winning.
+
+## Running scenarios you did not write
+
+`sigil.exec` runs `sh -c` on the host running sigil — not inside any container.
+When the scenario files come from somewhere else (a contract package, an agent),
+deny it:
+
+```sh
+sigil run scenarios/ --endpoint http://localhost:8080 --deny-capability exec
+```
+
+A scenario that declares or calls a denied capability fails before it executes
+(lint `E007`, `failure_class = "capability"` in `--json`); nothing is denied
+unless you ask.
 
 ## What you don't get here
 

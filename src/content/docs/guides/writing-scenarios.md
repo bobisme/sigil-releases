@@ -189,6 +189,8 @@ The `policy.capabilities` field is static metadata. `sigil scenario lint` reject
 | `wraith` | `require('lib.wraith')` — the session/auth helper in wraith-generated contract scenarios |
 | `db` | `sigil.db` (Phase C+) |
 
+Declaring a capability is necessary but not always sufficient: an operator can deny one outright with `[eval] denied_capabilities` (or `sigil run --deny-capability`). A scenario that declares or calls a denied capability fails lint (E007) before it executes, and the runtime installs a denying stub regardless. `exec` is the usual target — `sigil.exec` runs on the host running sigil, not inside the deployed container. See [Configuration → `[eval]`](/reference/configuration/#eval).
+
 ## Sandbox rules
 
 - Lua 5.4 via `mlua`, `sandbox(true)` enabled.

@@ -3,40 +3,54 @@ title: Configuration
 description: sigil.toml reference.
 ---
 
-Every service gets a `sigil.toml` at the repo root (or wherever you point `--config`). This page is the full reference.
+Every project gets a `.sigil/sigil.toml` (or wherever you point `--config`). This page covers the sections you are most likely to touch; the **authoritative, complete reference is the published JSON Schema** — it is generated from sigil's own config types and drift-tested in CI, so it can never lag the binary:
+
+- https://runsigil.com/schemas/sigil-config.schema.json (also `sigil schema config` on the command line)
+- `sigil init` writes a `#:schema` line at the top of the generated file; editors with TOML schema support (Taplo, VS Code's Even Better TOML) then offer completion and flag unknown keys.
+
+```toml
+#:schema https://runsigil.com/schemas/sigil-config.schema.json
+```
 
 ## Minimal example
 
 ```toml
-[service]
-name = "api"
+#:schema https://runsigil.com/schemas/sigil-config.schema.json
+default_service = "api"
 
 [deploy]
-compose_file = "docker-compose.yml"
-health_url   = "http://localhost:8080/health"
+backend      = "compose"
+health_check = "/health"
+
+[deploy.compose]
+compose_template = "docker-compose.yml"
 
 [judge]
 provider = "ollama"
 model    = "qwen3:14b"
 ```
 
-## `[service]`
+## `default_service`
 
-```toml
-[service]
-name    = "api"                      # service identifier (required)
-baseline = "merge-base"              # merge-base | main | <ref>
-```
+Top-level key: the service used when a command is not given `--service`. There is no `[service]` table.
 
 ## `[deploy]`
 
 ```toml
 [deploy]
-compose_file     = "docker-compose.yml"
-health_url       = "http://localhost:8080/health"
-health_timeout_s = 60
-env_file         = ".env.test"
+backend          = "compose"      # compose | container | kubernetes | process | external
+health_check     = "/health"      # path polled for HTTP 200 once the environment is up
+startup_timeout  = 300            # seconds: the backend's start command (compose up, docker run, kubectl apply)
+health_timeout   = 60             # seconds: polling health_check for readiness
+teardown_timeout = 600            # seconds: the backend's teardown command
+
+[deploy.compose]
+compose_template = "docker-compose.yml"   # required when backend = "compose"
 ```
+
+A deploy has three bounded phases with three separate bounds; none covers another, and a deploy can take their sum in the worst case. `startup_timeout` is honored by the `compose`, `container`, and `kubernetes` backends (the `process` backend spawns and returns, so it warns if this is set); `health_timeout` alone bounds readiness — raising `startup_timeout` does not give a slow-booting service more time to come up. `teardown_timeout` is generous on purpose: cutting teardown short leaks containers, so expiry is a last resort, and when it happens sigil logs a greppable `SIGIL_TEARDOWN_LEAK` warning naming the environment to reclaim. Exceeding any bound tears the environment down and fails the operation — fail-closed, never a silent success.
+
+Per-backend sub-tables: `[deploy.compose]`, `[deploy.container]`, `[deploy.kubernetes]`, `[deploy.process]`. `backend = "external"` uses pre-deployed services and requires `--pr-endpoint` / `--baseline-endpoint` on `sigil eval`. See the schema for every field.
 
 ## `[[scenarios]]`
 
@@ -110,33 +124,65 @@ comment        = true
 auto_merge     = true
 ```
 
-## `[policy]`
+## `[policy.<service>]`
+
+Per-service decision policy, keyed by service name. The `mode` caps the decision independently of trust: only `auto` can ever ALLOW, so a clean evaluation in `shadow` or `advisory` returns REVIEW, and an unset mode renders as `unset` with the same REVIEW ceiling in both `sigil decide` and `sigil trust`.
 
 ```toml
-[policy]
-max_staleness_for_allow_s = 60       # freshness gate
-min_window_for_auto       = 50       # min evals before AUTO promotion
-min_clean_allow_rate      = 0.98
-cooldown_after_incident_h = 24
+[policy.api]
+mode                = "advisory"    # shadow | advisory | auto
+min_satisfaction    = 0.95
+min_confidence      = 0.80
+max_regression_rate = 0.05
+window              = 10            # rolling window for trend analysis
+max_human_override  = 0.10          # override rate that triggers escalation
+trust_decay_days    = 7
+never_auto          = ["security", "payment"]   # tags that block auto approval
 ```
 
-## `[policy.thresholds]`
+## `[scenario]` — reset hooks and `sigil.env()`
 
-Satisfaction score thresholds, per priority:
+The singular `[scenario]` table is unrelated to the plural `[[scenarios]]` array above: it holds per-scenario **reset hooks** and the **environment allowlist**.
+
+### `[scenario.reset]`
+
+HTTP requests the runner sends before each scenario to drop in-memory state on the service under test (rate-limit buckets, caches, sessions) so scenario N does not leak into scenario N+1. One hook against the deploy's primary URL, or several with the array-of-tables form, each optionally naming an `[eval] services` entry:
 
 ```toml
-[policy.thresholds]
-p0 = { allow = 0.95, review = 0.85 }   # below 0.85 -> BLOCK
-p1 = { allow = 0.90, review = 0.75 }
-p2 = { allow = 0.80, review = 0.60 }
+[scenario.reset]
+method = "POST"
+path   = "/__sigil_test_reset"        # relative; joined onto the target's origin
+expected_status = 204                 # default: any 2xx
+
+# or several, fired in declaration order — the first failure fails the scenario
+[[scenario.reset]]
+method = "POST"
+path   = "/__sigil_test_reset"
+
+[[scenario.reset]]
+method  = "POST"
+path    = "/__sigil_test_reset"
+service = "twin-b"                    # must be declared in [eval] services
 ```
 
-## Environment variables in scenarios
+Paths stay relative per target, so a reset can never leave the pinned origin set; a `service` that `[eval] services` does not declare is a config error at load time. Hooks fire under `sigil scenario run` and under `sigil eval` — in eval each side (PR deploy, then baseline deploy) is reset before that side runs, and a failed reset fails that side's scenario without running its body (fail-closed, never ALLOW). Because a reset wipes state shared by the whole scenario set, `sigil eval` refuses hooks when `[eval] scenario_concurrency > 1` — set it to 1 or drop the hooks. `sigil run` reads no `sigil.toml` and has no hook; reset from Lua there.
 
-`sigil.env("KEY")` reads from a strict per-key allowlist — anything not named is
-invisible to the scenario and returns nil.
+### `[scenario.env]` — environment variables in scenarios
 
-The allowlist is populated by `sigil run --env` (repeatable, docker-style):
+`sigil.env("KEY")` reads from a **strict per-key allowlist** — anything not named is invisible to the scenario and returns nil, including variables set in sigil's own environment.
+
+Under `sigil eval` the allowlist is `[scenario.env]` (singular — `[scenarios.env]` parses as a stray key on the first `[[scenarios]]` entry and does nothing):
+
+```toml
+[scenario.env]
+API_VERSION    = "v2"                          # literal
+ALICE_PASSWORD = { from = "ALICE_PASSWORD" }   # passthrough from sigil's process env
+SERVICE_TOKEN  = { from = "CI_SERVICE_TOKEN" } # renamed passthrough
+```
+
+A passthrough whose source variable is unset is not inserted — `sigil.env(KEY)` returns nil and a warning names the key, because a silent `""` turns a missing credential into a login failure that reads like a product bug. It is read from the control snapshot, like everything else the eval consumes, so a PR cannot widen its own allowlist.
+
+Under `sigil run` the allowlist is the repeatable `--env` flag (docker-style):
 
 ```sh
 sigil run scenarios/ --env TEST_API_KEY=abc123   # explicit value
@@ -145,20 +191,18 @@ sigil run scenarios/ --env ALICE_PASSWORD        # pass through from sigil's own
                                                  # off the command line
 ```
 
-:::caution[Not yet available in `sigil eval`]
-There is no config-file equivalent. Earlier versions of this page documented a
-`[scenarios.env]` table; it was never implemented, and `sigil eval` currently
-passes an empty allowlist, so `sigil.env()` returns nil for every key under
-`eval`. Scenarios that need credentials during a full evaluation should read
-them through the deployed service's own environment (`[deploy]`) rather than
-`sigil.env()`. Tracked as bn-3g11.
-:::
-
 ## `[eval]`
 
 ```toml
 [eval]
-allowed_origins = ["http://127.0.0.1:9090"]   # extra origins scenarios may reach
+scenario_concurrency = 1                       # parallel scenarios; must be 1 when [scenario.reset] hooks are set
+allowed_origins      = ["http://127.0.0.1:9090"]   # extra origins scenarios may reach
+services             = { taxonomy = "http://twin-b:8080" }   # named services for sigil.service("taxonomy")
+denied_capabilities  = ["exec"]                # capabilities no scenario may declare or use
 ```
 
-Endpoint pinning confines scenario HTTP to the deployed service's origin by default — a holdout or contract scenario cannot exfiltrate over an arbitrary `base_url`. `allowed_origins` adds extra origins that `sigil eval` / `sigil scenario run` / `sigil generate` may reach (typically sidecars like a metrics endpoint on another port). Entries must be bare origins (`scheme://host[:port]`, at most a trailing `/`); a malformed entry is a hard config error at load (fail-closed). The deployed service's own origin is always allowed and need not be listed. (`sigil run`, which has no project config, pins to `--endpoint` and ignores this list; use its `--allow-cross-origin` flag instead.)
+**Endpoint pinning** confines scenario HTTP to the deployed service's origin by default — a holdout or contract scenario cannot exfiltrate over an arbitrary `base_url`. `allowed_origins` adds extra origins that `sigil eval` / `sigil scenario run` / `sigil generate` may reach (typically sidecars like a metrics endpoint on another port). Entries must be bare origins (`scheme://host[:port]`, at most a trailing `/`); a malformed entry is a hard config error at load (fail-closed). The deployed service's own origin is always allowed and need not be listed. (`sigil run`, which has no project config, pins to `--endpoint` and ignores this list; use its `--allow-origin` / `--allow-cross-origin` flags instead.)
+
+**`services`** declares named services reachable from Lua as `sigil.service("name")` — a second twin, say — with each origin validated like `allowed_origins` and folded into the pin set. The same map is what `[scenario.reset]` hooks with `service = "…"` target. The `sigil run` equivalents are `--endpoint name=url` and `--endpoints-from <json>`.
+
+**`denied_capabilities`** is an operator-side denylist on top of the per-scenario `policy.capabilities` declaration. Nothing is denied by default; an unknown capability name is a hard config error. Enforcement is fail-closed at three layers: a scenario that declares or calls a denied capability fails lint (`E007`) before it executes, the runtime installs a denying stub for it regardless of what the scenario declared, and `sigil.intent` never exposes it as a tool. A blocked scenario reports `failure_class = "capability"`. The motivating case is `exec`: `sigil.exec` runs `sh -c` on the host running sigil, not inside the deployed container, so deny it wherever third-party or agent-authored scenarios run. The `sigil run` equivalent is the repeatable `--deny-capability <NAME>`.

@@ -56,7 +56,7 @@ Returns `{ status, stdout, stderr }`. `status` is the process exit code, or `-1`
 
 ## `sigil.env(name)`
 
-Reads from a **strict per-key allowlist**, never the ambient process environment; a key that is not on the allowlist returns `nil`. Under `sigil run` the allowlist is the repeatable `--env KEY[=VALUE]` flag — see [Configuration → Environment variables in scenarios](/reference/configuration/#environment-variables-in-scenarios) for how it is populated in each mode.
+Reads from a **strict per-key allowlist**, never the ambient process environment; a key that is not on the allowlist returns `nil`. Under `sigil eval` the allowlist is `[scenario.env]` in `sigil.toml` (literal values or `{ from = "PROCESS_VAR" }` passthroughs, read from the control snapshot); under `sigil run` it is the repeatable `--env KEY[=VALUE]` flag. See [Configuration → `[scenario.env]`](/reference/configuration/#scenarioenv--environment-variables-in-scenarios).
 
 ## `sigil.gen.*`
 

@@ -1,0 +1,1190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runsigil.com/schemas/sigil-config.schema.json",
+  "title": "sigil.toml",
+  "description": "Configuration for sigil, the autonomous evaluation and merge policy engine. See https://runsigil.com/reference/configuration/.",
+  "type": "object",
+  "properties": {
+    "default_service": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "keys": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/KeyEntry"
+      }
+    },
+    "holdout": {
+      "$ref": "#/$defs/HoldoutConfig"
+    },
+    "deploy": {
+      "$ref": "#/$defs/DeployConfig"
+    },
+    "eval": {
+      "$ref": "#/$defs/EvalConfig"
+    },
+    "judge": {
+      "$ref": "#/$defs/JudgeConfig"
+    },
+    "feedback": {
+      "$ref": "#/$defs/FeedbackConfig"
+    },
+    "security": {
+      "$ref": "#/$defs/SecurityConfig"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/PolicyConfig"
+      }
+    },
+    "risk": {
+      "$ref": "#/$defs/RiskConfig"
+    },
+    "ledger": {
+      "$ref": "#/$defs/LedgerConfig"
+    },
+    "attestation": {
+      "$ref": "#/$defs/AttestationConfig"
+    },
+    "observability": {
+      "$ref": "#/$defs/ObservabilityConfig"
+    },
+    "generate": {
+      "$ref": "#/$defs/GenerateConfig"
+    },
+    "ci": {
+      "$ref": "#/$defs/CiConfig"
+    },
+    "scenario": {
+      "$ref": "#/$defs/ScenarioConfig"
+    },
+    "scenarios": {
+      "description": "Where scenario source lives, as `[[scenarios]]` array-of-tables.\n\nDefaults to a single `scenarios/` directory at the project root. Note\nthe plural: `[scenario]` (singular) is the unrelated reset-hook table\nabove, and [`validate_config`] rejects the confusable spellings.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ScenarioDirConfig"
+      }
+    },
+    "browser": {
+      "$ref": "#/$defs/BrowserConfig"
+    }
+  },
+  "required": [
+    "deploy"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "KeyEntry": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "public_key": {
+              "type": "string"
+            },
+            "role": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "public_key"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "HoldoutConfig": {
+      "type": "object",
+      "properties": {
+        "percentage": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0,
+          "maximum": 255,
+          "default": 25
+        },
+        "rotation_interval": {
+          "type": "string",
+          "default": "30d"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeployConfig": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "type": "string"
+        },
+        "health_check": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "health_timeout": {
+          "description": "Maximum seconds spent polling `health_check` for HTTP 200 once the\nenvironment is up — the **readiness** phase.\n\nThis is the only bound on readiness. Raising `startup_timeout` does not\ngive a slow-booting service more time to answer its health check.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 30
+        },
+        "startup_timeout": {
+          "description": "Maximum seconds the backend's start command may run — the **startup**\nphase. For the compose backend that is `compose up -d`: image pull plus\ncontainer create/start.\n\nHonoured by the compose backend only; the other backends either return\nimmediately or do not deploy at all, and warn at config load when this\nis set. Worst-case deploy time is `startup_timeout + health_timeout`.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 120
+        },
+        "teardown_timeout": {
+          "description": "Maximum seconds the backend's teardown command may run — `compose down`,\n`docker rm -f`, `kubectl delete namespace`.\n\nSeparate from `startup_timeout` because the two have opposite failure\npreferences. Startup should fail fast: a wedged pull is not going to\nimprove. Teardown should try hard, because cutting it short leaks\ncontainers and namespaces that nothing will come back for — so the\ndefault is generous enough that a normal teardown never trips it, and\nexpiry is a last resort. When it does expire the child is killed and a\ngreppable warning names the environment, so an operator can reclaim\nwhatever was left behind (bn-1feq).",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 600
+        },
+        "resource_limit_cpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resource_limit_memory": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concurrent_evals": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 4
+        },
+        "cleanup_on_failure": {
+          "type": "boolean",
+          "default": true
+        },
+        "compose": {
+          "description": "Backend-specific configuration for `backend = \"compose\"`.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComposeSubConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "container": {
+          "description": "Backend-specific configuration for `backend = \"container\"`.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContainerSubConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kubernetes": {
+          "description": "Backend-specific configuration for `backend = \"kubernetes\"`.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSubConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "process": {
+          "description": "Backend-specific configuration for `backend = \"process\"`.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProcessSubConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "backend"
+      ],
+      "additionalProperties": false
+    },
+    "ComposeSubConfig": {
+      "description": "Configuration for the Docker Compose deploy backend (`[deploy.compose]`).",
+      "type": "object",
+      "properties": {
+        "compose_template": {
+          "description": "Path to the compose template file (supports `${ARTIFACT_REF}`, `${PROJECT_NAME}`, `${PORT}`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compose_command": {
+          "description": "Shell command used to invoke compose-compatible tooling.\nDefaults to `[\"docker\", \"compose\"]`.\n\nExamples:\n- `['docker', 'compose']`\n- `['podman', 'compose']`\n- `['docker-compose']`",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "docker",
+            "compose"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContainerSubConfig": {
+      "description": "Configuration for the bare-container deploy backend (`[deploy.container]`).",
+      "type": "object",
+      "properties": {
+        "image": {
+          "description": "Container image reference (overridden per-eval by the artifact ref).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "port": {
+          "description": "Host port to expose the container on.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "additionalProperties": false
+    },
+    "KubernetesSubConfig": {
+      "description": "Configuration for the Kubernetes deploy backend (`[deploy.kubernetes]`).",
+      "type": "object",
+      "properties": {
+        "namespace_template": {
+          "description": "Namespace name template (supports `${PROJECT_NAME}`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manifest_template": {
+          "description": "Path to the k8s manifest template.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kubeconfig": {
+          "description": "Optional path to a kubeconfig file (defaults to cluster in-context).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ProcessSubConfig": {
+      "description": "Configuration for the process deploy backend (`[deploy.process]`).",
+      "type": "object",
+      "properties": {
+        "command": {
+          "description": "Command to run (e.g., `\"cargo\"` or `\"./target/release/my-api\"`).",
+          "type": "string"
+        },
+        "args": {
+          "description": "Arguments to pass to the command (e.g., `[\"run\", \"--bin\", \"my-api\"]`).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "env": {
+          "description": "Environment variables to set for the process.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "working_dir": {
+          "description": "Working directory for the process (defaults to repo root).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "port": {
+          "description": "Port the process will listen on. If omitted, assigned from hash like other backends.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "EvalConfig": {
+      "type": "object",
+      "properties": {
+        "runs_per_scenario": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 3
+        },
+        "confidence_level": {
+          "type": "number",
+          "format": "double",
+          "default": 0.95
+        },
+        "pass_threshold": {
+          "type": "number",
+          "format": "double",
+          "default": 0.9
+        },
+        "differential": {
+          "type": "boolean",
+          "default": false
+        },
+        "progressive": {
+          "type": "boolean",
+          "default": true
+        },
+        "budget_seconds": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 600
+        },
+        "budget_tokens": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 50000
+        },
+        "scenario_concurrency": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 1
+        },
+        "max_eval_age": {
+          "type": "string",
+          "default": "24h"
+        },
+        "differential_eval": {
+          "$ref": "#/$defs/DifferentialEvalConfig"
+        },
+        "stage_fail_rate_threshold": {
+          "description": "Fraction of failing scenarios within a stage that triggers early\ntermination of the entire eval (BLOCK decision). Range: 0.0–1.0.",
+          "type": "number",
+          "format": "double",
+          "default": 0.5
+        },
+        "catastrophic_fail_rate": {
+          "description": "Fraction of failing deterministic-tier scenarios above which the\nsemantic (LLM) stage is skipped entirely to save cost. Range: 0.0–1.0.",
+          "type": "number",
+          "format": "double",
+          "default": 0.8
+        },
+        "live_runners": {
+          "description": "When `true` (default), `sigil.get/post/...` and `sigil.exec()` execute\nreal HTTP requests and subprocess commands.  When `false`, they return\nstub responses.  Primarily used by tests; the real orchestrator keeps\nthe default (`true`).",
+          "type": "boolean",
+          "default": true
+        },
+        "allowed_origins": {
+          "description": "Extra http(s) origins that origin-pinned first-party modes (`sigil\neval`, `sigil scenario run`, `sigil scenario generate`) may target\nin addition to the deployed service's own origin, which is always\nimplicitly allowed (bn-irz0).  Use this for sidecar listeners the\nscenarios legitimately hit via `opts.base_url` — e.g. `/metrics`\non `http://127.0.0.1:9090`.\n\nEntries must be **bare** origins (`scheme://host[:port]`, optional\ntrailing `/`); default ports normalize (`http` → 80, `https` →\n443).  Fail-closed: an entry that is not a valid bare http(s)\norigin is a hard config error at load time, never a silently\nskipped allowlist line.  One shared key covers all three modes —\nthe allowlist describes the deployment's sidecar topology, which\ndoes not change per command.  `sigil run` (third-party contract\nLua) deliberately ignores it and stays pinned to its single\n`--endpoint` origin (bn-3fne).\n\nSECURITY: every origin listed here is a reachable exfiltration\ntarget for scenario Lua, including HOLDOUT scenarios during\n`sigil eval` — keep the list minimal and loopback-local.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "denied_capabilities": {
+          "description": "Scenario capabilities this project refuses to run (bn-37fi).\n\nEvery name must appear in `KNOWN_CAPABILITIES`\n([`crate::scenario::validate::is_known_capability`]); an unknown\nname is a hard config error at load time, so a typo can never\nsilently widen what is allowed. Matching is ASCII\ncase-insensitive, consistent with E005 and the runtime gate.\n\nEmpty (the default) denies nothing — sigil stays permissive unless\nan operator opts in.\n\nEnforced fail-closed at three layers:\n\n1. **lint** — declaring a denied capability in `policy.capabilities`\n   (or calling something that requires one) is lint error E007, so\n   `sigil scenario lint` catches it in CI before anything runs;\n2. **runtime** — `enforce_policy_runtime_capabilities` treats a\n   denied capability as undeclared and installs the denying stub\n   regardless of what the scenario declared;\n3. **intent tools** — a denied capability is never exposed as a\n   `sigil.intent` tool, even when the call asks for it by name.\n\nSECURITY: `\"exec\"` is the motivating entry. `sigil.exec` runs\n`sh -c <command>` on the **host running sigil** — not inside the\ndeployed container — so a CI that runs third-party or\nagent-authored scenarios should deny it.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "services": {
+          "description": "Named services for cross-service scenarios (bn-3hbk): a\n`name → base_url` map backing the `sigil.service(\"name\")` Lua\nhandle. Declared as `services = { taxonomy = \"http://twin-b:8080\" }`\nor an `[eval.services]` table.\n\nEach value must be a **bare** http(s) origin\n(`scheme://host[:port]`, optional trailing `/`), validated\nfail-closed at load time with the same grammar as\n[`Self::allowed_origins`]. Every declared service origin is *also*\nimplicitly added to the origin-pin set (like an `allowed_origins`\nentry), so a scenario reaching a service via its handle stays\npinned while every other origin remains blocked. A `BTreeMap` keeps\niteration (and the \"unknown service\" error listing) deterministic.\n\nSECURITY: like `allowed_origins`, every service origin is a\nreachable target for scenario Lua — keep the map minimal.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "DifferentialEvalConfig": {
+      "type": "object",
+      "properties": {
+        "path_patterns": {
+          "description": "File path to endpoint path patterns (e.g., \"src/handlers/*.rs\" -> \"/api/*\")",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "JudgeConfig": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "description": "LLM provider: \"ollama\", \"openai\", \"anthropic\", \"openrouter\", \"command\".\nDetermines default api_base and API key env var.\nWhen set to \"command\", LLM calls shell out to the `command` field instead\nof using the HTTP API.",
+          "type": "string",
+          "default": "openai"
+        },
+        "command": {
+          "description": "Shell command for `provider = \"command\"`. The prompt is piped to stdin,\nresponse read from stdout. Example: `\"claude -p --output-format text\"`",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "model": {
+          "type": "string",
+          "default": "haiku"
+        },
+        "fallback_model": {
+          "type": "string",
+          "default": "sonnet"
+        },
+        "api_base": {
+          "description": "Optional API base URL override. If not set, derived from provider.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "temperature": {
+          "type": "number",
+          "format": "double",
+          "default": 0.3
+        },
+        "consensus": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 3
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 30
+        },
+        "max_tokens": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 4000
+        },
+        "pairwise": {
+          "type": "boolean",
+          "default": true
+        },
+        "injection_detection": {
+          "type": "boolean",
+          "default": true
+        },
+        "external_allowed_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "public",
+            "internal"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeedbackConfig": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "default": "json"
+        },
+        "max_hint_length": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0,
+          "default": 200
+        },
+        "include_status_codes": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_step_names": {
+          "type": "string",
+          "default": "opaque"
+        },
+        "include_timing": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "SecurityConfig": {
+      "type": "object",
+      "properties": {
+        "sast_tool": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "secret_scanner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dep_scanner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "block_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "warn_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "sbom": {
+          "type": "boolean",
+          "default": false
+        },
+        "sast_mode": {
+          "description": "Mode for the SAST scanner. Defaults to advisory when a tool is configured.",
+          "$ref": "#/$defs/ScannerMode",
+          "default": "advisory"
+        },
+        "secret_mode": {
+          "description": "Mode for the secret scanner. Defaults to advisory when a tool is configured.",
+          "$ref": "#/$defs/ScannerMode",
+          "default": "advisory"
+        },
+        "dep_mode": {
+          "description": "Mode for the dependency scanner. Defaults to advisory when a tool is configured.",
+          "$ref": "#/$defs/ScannerMode",
+          "default": "advisory"
+        },
+        "scanner_timeout_secs": {
+          "description": "Per-scanner subprocess timeout in seconds. A scanner that runs longer than\nthis is killed and reported as a `Timeout` failure (fail-closed for\nrequired scanners). Defaults to [`default_scanner_timeout_secs`].",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 120
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScannerMode": {
+      "description": "Mode for a configured security scanner.\n\n`Required` scanners must run successfully — a failure to execute or parse\ntheir output is a hard gate failure (fail-closed). `Advisory` scanners stay\nvisible but their execution failures are non-blocking. `Disabled` scanners\nare not run at all and never contribute to the gate.",
+      "type": "string",
+      "enum": [
+        "disabled",
+        "advisory",
+        "required"
+      ]
+    },
+    "PolicyConfig": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "min_satisfaction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "min_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "max_regression_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "max_human_override": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "trust_decay_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "never_auto": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "opa": {
+          "description": "OPA/Rego policy configuration (optional)",
+          "$ref": "#/$defs/OPAConfig",
+          "default": {
+            "enabled": false,
+            "policy_path": null,
+            "entrypoint": "data.sigil.decide",
+            "required": false,
+            "timeout_seconds": 30
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "OPAConfig": {
+      "description": "OPA/Rego policy evaluator\n\nImplements optional policy guardrails using Open Policy Agent (OPA).\nPolicies are defined in Rego language and evaluated against structured input\nbuilt from eval results, trust state, and security findings.\n\nDisabled by default for backward compatibility.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Enable OPA policy evaluation (disabled by default)",
+          "type": "boolean",
+          "default": false
+        },
+        "policy_path": {
+          "description": "Path to OPA policy bundle directory or file",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entrypoint": {
+          "description": "OPA policy entrypoint (e.g., \"data.sigil.decide\")",
+          "type": "string",
+          "default": "data.sigil.decide"
+        },
+        "required": {
+          "description": "Require OPA to be installed; if false, silently skip on not found",
+          "type": "boolean",
+          "default": false
+        },
+        "timeout_seconds": {
+          "description": "Timeout for OPA evaluation in seconds",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 30
+        }
+      },
+      "additionalProperties": false
+    },
+    "RiskConfig": {
+      "type": "object",
+      "properties": {
+        "path_rules": {
+          "$ref": "#/$defs/RiskPathRules"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RiskPathRules": {
+      "type": "object",
+      "properties": {
+        "r0": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/*.md",
+            "**/test/**",
+            "**/*.test.*",
+            ".github/**"
+          ]
+        },
+        "r1": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "r2": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/api/**",
+            "**/handlers/**",
+            "**/models/**"
+          ]
+        },
+        "r3": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/migrations/**",
+            "**/auth/**",
+            "**/billing/**",
+            "**/crypto/**"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "LedgerConfig": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "default": "git"
+        },
+        "repo": {
+          "type": "string",
+          "default": ".sigil"
+        },
+        "remote": {
+          "type": "string",
+          "default": "origin"
+        },
+        "auto_sync": {
+          "type": "boolean",
+          "default": true
+        },
+        "sync_retry": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 3
+        },
+        "max_staleness_for_allow": {
+          "type": "string",
+          "default": "60s"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AttestationConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "signing_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "format": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trusted_public_keys": {
+          "description": "Hex-encoded Ed25519 public keys trusted for verification.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "ObservabilityConfig": {
+      "type": "object",
+      "properties": {
+        "metrics_endpoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "log_format": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "log_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trace_enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "GenerateConfig": {
+      "description": "Configuration for `sigil scenario generate`.\n\nLLM fields (provider, command, model, etc.) override `[judge]` settings\nfor generation. If a field is not set, falls back to `[judge]`.",
+      "type": "object",
+      "properties": {
+        "context_specs": {
+          "description": "Spec files always included as context for every generation run.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "provider": {
+          "description": "LLM provider override: \"ollama\", \"openai\", \"anthropic\", \"openrouter\", \"command\".",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "command": {
+          "description": "Shell command for `provider = \"command\"`.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "api_base": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "temperature": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "default": null
+        },
+        "timeout_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0,
+          "default": null
+        },
+        "max_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0,
+          "default": null
+        },
+        "system_prompt_extra": {
+          "description": "Extra text appended to the scenario generation system prompt.\nUse for domain-specific instructions (auth patterns, test data, naming).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "contracts": {
+          "description": "Optional schema contracts used to validate generated scenarios against\nthe service's declared request/response shapes. Absent = no contract\nawareness (clean no-op). See [`GenerateContractsConfig`].",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GenerateContractsConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "GenerateContractsConfig": {
+      "description": "Configuration for `[generate.contracts]`.\n\nPoints scenario generation and candidate validation at machine-readable\nAPI contracts. Currently only an OpenAPI 3.x JSON document is supported;\na future `json_schema_dir` key (a directory of standalone JSON Schema\nfiles) is reserved but not yet implemented.\n\nPaths are resolved relative to the project root, consistent with other\n`[generate]` and `[deploy]` file paths.",
+      "type": "object",
+      "properties": {
+        "openapi": {
+          "description": "Path to an OpenAPI 3.x JSON document (e.g. `docs/openapi.json`).\nWhen set, it is parsed into a contract index at pipeline start; a\nmissing, unreadable, malformed, or non-OpenAPI document is a hard\nerror (fail-closed), never a silently empty index.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "CiConfig": {
+      "description": "Configuration for `sigil ci`.",
+      "type": "object",
+      "properties": {
+        "auto_merge": {
+          "type": "boolean",
+          "default": false
+        },
+        "comment": {
+          "type": "boolean",
+          "default": true
+        },
+        "status_context": {
+          "type": "string",
+          "default": "sigil"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScenarioConfig": {
+      "description": "Configuration for the `[scenario]` table.\n\nHolds the `[scenario.reset]` hooks — HTTP requests the runner sends before\neach scenario to reset in-memory state on the services under test\n(rate-limit buckets, caches, etc.) so behaviour does not leak across\nsequentially-run scenarios — and the `[scenario.env]` allowlist.\n\n# Where reset hooks fire\n\n- **`sigil scenario run`** (single scenario and `--all`): always. That\n  path is sequential by construction.\n- **`sigil eval`**: yes, since bn-n966 — once per scenario against *each*\n  side, immediately before that side's body runs (the PR deploy, then the\n  baseline deploy; named-service hooks resolve through the same\n  `[eval] services` map for both, since declared services are external\n  twins the two deploys share). A reset failure is that side's setup\n  failure and that side alone: the body does not run, the other side is\n  untouched, and the pair reads as a regression — fail-closed, never\n  ALLOW.\n\n  Because a hook resets state that **every** scenario in the set shares,\n  eval refuses to run them in parallel: configured hooks together with\n  `[eval] scenario_concurrency > 1` is an error raised before anything is\n  deployed ([`crate::eval::execution::ensure_reset_hooks_can_fire`]). It\n  is checked there, not at config load, so a `sigil.toml` with both a\n  parallel `[eval]` and reset hooks stays usable under `sigil scenario\n  run`.\n- **`sigil run`**: no. It reads no `sigil.toml` at all, so there is no\n  hook — reset from Lua there (`sigil.post(\"/__reset\")` at the top of\n  `run`).",
+      "type": "object",
+      "properties": {
+        "reset": {
+          "description": "HTTP \"reset hooks\" sent before each scenario, in declaration order.\n\nTwo spellings, both parsing into this vector (bn-mzb7):\n\n```toml\n# one hook against the deploy's primary URL\n[scenario.reset]\nmethod = \"POST\"\npath   = \"/__sigil_test_reset\"\n\n# or several, each optionally naming an [eval] service\n[[scenario.reset]]\nmethod = \"POST\"\npath   = \"/__sigil_test_reset\"\n\n[[scenario.reset]]\nmethod  = \"POST\"\npath    = \"/__sigil_test_reset\"\nservice = \"twin-b\"\n```\n\nThe first failing hook fails the scenario; later hooks are not sent.",
+          "$ref": "#/$defs/ScenarioResetHooks"
+        },
+        "env": {
+          "description": "Environment variables exposed to scenarios through `sigil.env(KEY)`.\n\nA **strict per-key allowlist**: only keys named here ever reach a\nscenario, and `sigil.env` returns nil for everything else. This is the\neval-mode counterpart of `sigil run --env` (bn-3g11); before it existed\na scenario needing credentials during an eval had no supported way to\nget them.\n\n```toml\n[scenario.env]\nAPI_VERSION    = \"v2\"                            # literal\nALICE_PASSWORD = { from = \"ALICE_PASSWORD\" }     # passthrough\nSERVICE_TOKEN  = { from = \"CI_SERVICE_TOKEN\" }   # renamed passthrough\n```\n\nRead from the **control snapshot**, like everything else the eval\nconsumes — a PR must not be able to widen its own allowlist.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ScenarioEnvValue"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScenarioResetHooks": {
+      "description": "JSON-schema shape of `[scenario.reset]`: one table, or an array of tables\n(bn-mzb7).\n\nExists so `schemas/sigil-config.schema.json` describes both spellings.\nDeserialization does NOT go through this enum — see\n[`deserialize_reset_hooks`] for why — so it carries only `JsonSchema`.",
+      "anyOf": [
+        {
+          "description": "`[scenario.reset]` — a single hook against the primary URL (or a\nnamed service, if it sets `service`).",
+          "$ref": "#/$defs/ScenarioResetConfig"
+        },
+        {
+          "description": "`[[scenario.reset]]` — several hooks, fired in declaration order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScenarioResetConfig"
+          }
+        }
+      ]
+    },
+    "ScenarioResetConfig": {
+      "description": "HTTP request shape for one per-scenario reset hook.\n\nFields:\n- `method`: HTTP method (e.g. `POST`, `DELETE`).\n- `path`: path appended to this hook's target origin (e.g.\n  `/__sigil_test_reset`). Absolute `http://...` URLs are not supported —\n  a reset hook can only target the deploy under test or one of the\n  `[eval] services` origins, so it can never leave the pinned origin set.\n- `service`: optional `[eval] services` name to target instead of the\n  deploy's primary URL (bn-mzb7). The same map `sigil.service(\"name\")`\n  reads; an undeclared name is a config error at load time. Unset means\n  the primary URL.\n- `headers`: optional request headers.\n- `body`: optional request body (sent verbatim as a string).\n- `expected_status`: expected response status. Any 2xx response is\n  accepted when `expected_status` is unset.\n\nHooks fire under `sigil scenario run` and `sigil eval` (per scenario, per\nside) — see [`ScenarioConfig`] for the exact semantics, why eval refuses\nthem under `scenario_concurrency > 1`, and why `sigil run` has no hook.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "service": {
+          "description": "Named `[eval] services` entry to reset; `None` targets the deploy's\nprimary URL (bn-mzb7).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "body": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "expected_status": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": null
+        }
+      },
+      "required": [
+        "method",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioEnvValue": {
+      "description": "One entry in [`ScenarioConfig::env`].",
+      "anyOf": [
+        {
+          "description": "A literal value written in the config. Fine for non-secrets; anything\nsensitive belongs in [`Self::FromProcess`] so it stays off disk and out\nof the control ref's history.",
+          "type": "string"
+        },
+        {
+          "description": "Read from sigil's own process environment at eval time, under the name\n`from`. The value never touches the config, argv, or the ledger — the\nsame reason `sigil run --env KEY` has a bare form.",
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "Name to read from sigil's process environment.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "from"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ScenarioDirConfig": {
+      "description": "One root directory containing scenario source.\n\n```toml\n[[scenarios]]\npath = \"scenarios\"                  # contains per-service subdirectories\n\n[[scenarios]]\npath = \"services/api/scenarios\"     # IS the api service's scenarios\nservice = \"api\"\n```\n\nOne schema covers both shapes so a monorepo can colocate scenarios with the\nservice they exercise instead of forcing one central tree.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Path to the directory, relative to the project root (the directory\ncontaining `.sigil/`).",
+          "type": "string"
+        },
+        "service": {
+          "description": "When set, this directory *is* that service's scenarios and contains no\nservice-name level. When absent, the directory holds one subdirectory\nper service.\n\nMaking the service explicit is what lets scenarios live anywhere: the\nservice used to be read positionally from the first path component,\nwhich only works when every root shares one layout.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "BrowserConfig": {
+      "description": "Configuration for the `[browser]` table.\n\nFuture fields (per-scenario user-data-dir policy, version pinning) land\nhere as Phase 4+ wiring requires.",
+      "type": "object",
+      "properties": {
+        "backend": {
+          "description": "Which backend the Lua `sigil.browser.*` methods dispatch through.",
+          "$ref": "#/$defs/BrowserBackendKind"
+        },
+        "headless": {
+          "description": "When `true`, Chrome launches with `--headless=new`; when `false` a\nvisible window is shown.  Defaults to `true`.\n\nOverride at run time via the `SIGIL_BROWSER_HEADLESS` env var —\n`\"0\" | \"false\" | \"no\"` flip it to headful, anything else (including\nunset) keeps the configured value.  See\n[`BrowserConfig::resolve_headless`].",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "BrowserBackendKind": {
+      "description": "Browser backend selector for `[browser] backend = \"native\" | \"cli\"`.\n\nDefault is `Native` (in-process Chrome-for-Testing runner from the\n[`sigil-browser`](::sigil_browser) crate).\n\nThe `Cli` variant is retained **for config compatibility only**:\nthe legacy `agent-browser` shell-out path was removed in the Phase 6\nfinal task (bn-1w5f). Setting `[browser] backend = \"cli\"` will\ndeserialize successfully but every `sigil.browser.*` call will\nreturn a structured \"removed\" error pointing operators at the\nnative backend. See\n[`crate::runner::browser::CLI_BACKEND_REMOVED_MESSAGE`].\n\nThe flag is read in [`crate::runtime::globals::install_browser`].",
+      "oneOf": [
+        {
+          "description": "Removed CLI backend. Retained only so old `sigil.toml` files\ncontinue to parse; selecting this value yields a structured\nfailure on every browser call.",
+          "type": "string",
+          "const": "cli"
+        },
+        {
+          "description": "In-process native runner from `sigil-browser` (default).",
+          "type": "string",
+          "const": "native"
+        }
+      ]
+    }
+  }
+}
