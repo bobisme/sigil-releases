@@ -195,14 +195,131 @@ sigil run scenarios/ --env ALICE_PASSWORD        # pass through from sigil's own
 
 ```toml
 [eval]
-scenario_concurrency = 1                       # parallel scenarios; must be 1 when [scenario.reset] hooks are set
-allowed_origins      = ["http://127.0.0.1:9090"]   # extra origins scenarios may reach
-services             = { taxonomy = "http://twin-b:8080" }   # named services for sigil.service("taxonomy")
-denied_capabilities  = ["exec"]                # capabilities no scenario may declare or use
+runs_per_scenario     = 3                          # repetitions per scenario, for statistical confidence
+confidence_level      = 0.95                       # statistical confidence target
+pass_threshold        = 0.90                       # satisfaction threshold for ALLOW
+progressive           = true                       # adaptive early stopping once confidence_level is reached
+differential          = false                      # compare vs baseline (Phase D+)
+budget_seconds        = 600                        # wall-clock budget for the whole eval
+budget_tokens         = 50000                      # LLM token budget for the whole eval
+max_eval_age          = "24h"                      # max age of a cached eval.complete before decide re-evaluates
+scenario_concurrency  = 1                          # parallel scenarios; must be 1 when [scenario.reset] hooks are set
+allowed_origins       = ["http://127.0.0.1:9090"]  # extra origins scenarios may reach
+services              = { taxonomy = "http://twin-b:8080" }   # named services for sigil.service("taxonomy")
+denied_capabilities   = ["exec"]                   # capabilities no scenario may declare or use
 ```
+
+`runs_per_scenario`, `confidence_level`, and `pass_threshold` govern how many times each scenario repeats and what satisfaction rate counts as passing; `progressive` stops early once `confidence_level` is reached with fewer runs, and `differential` (Phase D+) additionally compares the PR run against the baseline run rather than judging the PR in isolation. `budget_seconds` / `budget_tokens` cap the whole eval, not a single scenario; exceeding either fails closed. `max_eval_age` bounds how long `sigil decide` may reuse a prior `eval.complete` record instead of requiring a fresh `sigil eval` — separate from `[ledger] max_staleness_for_allow`, which bounds ledger *sync* freshness rather than the eval's own age. See the schema for `stage_fail_rate_threshold`, `catastrophic_fail_rate`, `live_runners`, and `differential_eval`.
 
 **Endpoint pinning** confines scenario HTTP to the deployed service's origin by default — a holdout or contract scenario cannot exfiltrate over an arbitrary `base_url`. `allowed_origins` adds extra origins that `sigil eval` / `sigil scenario run` / `sigil generate` may reach (typically sidecars like a metrics endpoint on another port). Entries must be bare origins (`scheme://host[:port]`, at most a trailing `/`); a malformed entry is a hard config error at load (fail-closed). The deployed service's own origin is always allowed and need not be listed. (`sigil run`, which has no project config, pins to `--endpoint` and ignores this list; use its `--allow-origin` / `--allow-cross-origin` flags instead.)
 
 **`services`** declares named services reachable from Lua as `sigil.service("name")` — a second twin, say — with each origin validated like `allowed_origins` and folded into the pin set. The same map is what `[scenario.reset]` hooks with `service = "…"` target. The `sigil run` equivalents are `--endpoint name=url` and `--endpoints-from <json>`.
 
 **`denied_capabilities`** is an operator-side denylist on top of the per-scenario `policy.capabilities` declaration. Nothing is denied by default; an unknown capability name is a hard config error. Enforcement is fail-closed at three layers: a scenario that declares or calls a denied capability fails lint (`E007`) before it executes, the runtime installs a denying stub for it regardless of what the scenario declared, and `sigil.intent` never exposes it as a tool. A blocked scenario reports `failure_class = "capability"`. The motivating case is `exec`: `sigil.exec` runs `sh -c` on the host running sigil, not inside the deployed container, so deny it wherever third-party or agent-authored scenarios run. The `sigil run` equivalent is the repeatable `--deny-capability <NAME>`.
+
+## `[holdout]`
+
+Controls what fraction of scenarios are withheld from the coding agent (the dark-factory holdout set) and how often the holdout set rotates.
+
+```toml
+[holdout]
+percentage         = 25    # % of scenarios withheld as holdout (default)
+rotation_interval  = "30d" # rotate which scenarios are held out every N days
+```
+
+## `[feedback]`
+
+Shapes the lossy feedback `sigil eval` reports back to the coding agent — the isolation wall enforces that this can never leak holdout scenario content.
+
+```toml
+[feedback]
+format               = "json"    # text | json
+max_hint_length      = 200       # max characters per failure hint
+include_status_codes = true      # include HTTP status codes in hints
+include_step_names   = "opaque"  # opaque | step_N | full — opaque never leaks scenario names
+include_timing       = false     # include step timings
+```
+
+## `[security]`
+
+Optional SAST / secret / dependency scanning gates run alongside the eval. All fields are unset (scanning off) by default.
+
+```toml
+[security]
+sast_tool      = "semgrep"
+secret_scanner = "trufflehog"
+dep_scanner    = "trivy"
+sast_mode      = "advisory"           # disabled | advisory | required
+secret_mode    = "required"
+dep_mode       = "advisory"
+block_on       = ["CRITICAL", "HIGH:auth", "HIGH:secrets"]
+warn_on        = ["MEDIUM"]
+sbom           = true
+scanner_timeout_secs = 120            # per-scanner subprocess timeout
+```
+
+`sast_mode` / `secret_mode` / `dep_mode` (each defaulting to `advisory`) control whether a scanner's own execution failure is fail-closed: `required` treats a scanner that fails to run or parse as a hard gate failure, `advisory` surfaces its findings without blocking on tooling failure, and `disabled` skips it entirely regardless of `*_tool`.
+
+## `[ledger]`
+
+The git-backed (or SQLite) append-only record of every `eval.complete` and `eval.decision` event, and the freshness gate `sigil decide` enforces before any ALLOW.
+
+```toml
+[ledger]
+backend                 = "git"      # git | sqlite
+repo                    = ".sigil"   # ledger repository or db path
+remote                  = "origin"   # git remote name
+auto_sync               = true       # auto-sync ledger on eval
+sync_retry              = 3          # retry count for sync failures
+max_staleness_for_allow = "60s"      # max ledger sync age before an ALLOW is refused
+```
+
+`max_staleness_for_allow` is the **freshness gate**: `sigil decide` refuses to return ALLOW when the ledger has not synced within this window, regardless of how clean the underlying eval is (fail-closed — it downgrades to REVIEW or BLOCK, never ALLOW). It lives here, under `[ledger]`, not under a `[policy]` table.
+
+## `[attestation]`
+
+Optional in-toto supply-chain attestations over eval results (Phase G+). Disabled by default.
+
+```toml
+[attestation]
+enabled              = false
+signing_key          = "/path/to/key.pem"
+format               = "in-toto"
+trusted_public_keys  = ["<hex-encoded-ed25519-pubkey>"]
+```
+
+## `[observability]`
+
+```toml
+[observability]
+log_level        = "info"    # trace | debug | info | warn | error
+log_format       = "json"
+trace_enabled    = false     # detailed execution traces
+metrics_endpoint = "http://prometheus:9090/metrics"
+```
+
+## `[browser]`
+
+Controls the in-process Chrome-for-Testing runner backing `sigil.browser.*` scenario calls.
+
+```toml
+[browser]
+backend  = "native"   # native (the "cli" value is accepted for old configs but every call errors)
+headless = true        # false launches a visible window
+```
+
+Override `headless` ad hoc without editing config: `SIGIL_BROWSER_HEADLESS=0` (or `false` / `no`) forces headful for one run; any other value, including unset, keeps the configured setting.
+
+## `[risk]`
+
+`[risk.path_rules]` classifies a PR's changed paths into risk tiers `r0`–`r3` (glob patterns, matched in that order) for policy and reporting.
+
+```toml
+[risk.path_rules]
+r0 = ["**/*.md", "**/test/**", "**/*.test.*", ".github/**"]   # docs/tests
+r1 = []                                                          # empty by default
+r2 = ["**/api/**", "**/handlers/**", "**/models/**"]
+r3 = ["**/migrations/**", "**/auth/**", "**/billing/**", "**/crypto/**"]   # highest risk
+```
+
+A PR's risk class is the highest tier any changed path matches (a path matching no rule at all classifies `r0`); migration files and `[policy.<service>] never_auto` domains always force `r3`, and total changed lines over 500 bump the class up one tier.
