@@ -1,4 +1,8 @@
 #!/usr/bin/env bun
+// @ts-nocheck -- run directly via `bun run` (see Usage below); this repo has
+// no bun-types dependency and no tsc/astro-check step covers scripts/, so
+// the ambient `Bun` global (Bun.TOML) has no type declarations here. Add
+// bun-types as a devDependency instead of this pragma if that ever changes.
 /**
  * scripts/check-config-docs.ts
  *
