@@ -71,9 +71,9 @@ Deterministic random-value generators, seeded from the scenario seed.
 
 `math.random` and `math.randomseed` are neutered — all randomness must go through `sigil.gen.*`.
 
-## `expect(expr)`
+## `expect(expr, [message])`
 
-Power assertion. Source-rewritten at parse time: captures both sides of `==`/`~=`/`<`/`<=`/`>`/`>=` and every step of dotted chain accesses.
+Power assertion. Source-rewritten at parse time: captures both sides of `==`/`~=`/`<`/`<=`/`>`/`>=` and every step of dotted chain accesses. The optional second argument — a string, or `{ message = "…" }` — is appended to the failure text as `message: …` and becomes the entry's `description` in the report's `expects[]` block when no `---` doc comment precedes the call (a `---` block wins when both exist). `message` is the only recognised key; anything else is ignored.
 
 ```lua
 expect(res.json.user.email == "alice@example.com")
@@ -86,6 +86,17 @@ expect(res.json.user.email == "alice@example.com")
 --   │   │    { email = "bob@example.com" }
 --   │   { user = { email = "bob@example.com" } }
 --   { json = { user = { email = "bob@example.com" } } }
+
+expect(res.status == 200, "login should succeed for a seeded user")
+```
+
+## `sigil.log(message)` and `sigil.attach(name, value)`
+
+`sigil.log` records a scenario-local log line; `sigil.attach` records a named value (any JSON-representable Lua value) as evidence. Under `sigil run` and `sigil scenario run` both surface in the report: `--json` carries `logs: ["…"]` (call order) and `attachments: { name = value }` (last write wins) on every scenario entry, and the human output prints `log:` lines to stderr as they happen and `attach:` lines after the scenario. Neither reaches `sigil eval`'s lossy feedback or the PR comment.
+
+```lua
+sigil.log("seeded 3 users")
+sigil.attach("response_body", res.json)
 ```
 
 ## `invariant(name, opts)`
@@ -202,6 +213,8 @@ return {
   run       = function() ... end,           -- required
 }
 ```
+
+An unknown key in this table, or inside `budget`/`policy`, is a lint warning (W008) with a near-miss hint — `timeout`, `timeout_ms`, `budget_ms` and friends point at `budget = { max_seconds = N }`, since the wall-time budget is the only time bound and those spellings were silently ignored before 0.31. `sigil run` prints W008 to stderr.
 
 ## Errors
 

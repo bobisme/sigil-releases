@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.31.0] — 2026-08-19 — Second Report
+
+Another batch from the same external agent, all about the project-less runner being harder to talk to than it should be. The bug first: `sigil run` inferred capabilities from the literal call sites in a scenario file and let that inferred set *replace* the declared `policy.capabilities`, so `exec` declared but called from a `lib/` helper hit the denying stub. Then legibility: `sigil.log` and `sigil.attach` show up in the runner's output, bare `expect` takes a message, unknown scenario keys warn, and I001 stops telling `expect.eq`-only scenarios they have no assertions. One lint tightening to read before upgrading: strict lint (`sigil scenario lint`, promote) now sees a capability call whose result is indexed inline (`sigil.exec("x").status`), so a committed scenario using that shape without declaring the capability newly fails E003 — it was a runtime denial waiting to happen.
+
+- **`sigil run` no longer strips declared capabilities.** The effective set under `sigil run` is now declared ∪ inferred: a declaration is always honored, inference only adds (so a bare `{ run = … }` still works), and `--deny-capability` still wins over both. A capability reached through a `require('lib.x')` helper, `sigil["exec"]`, or a `local f = sigil.exec` alias must be declared — inference only sees literal call sites in the scenario file. See [Writing scenarios → Capabilities](/guides/writing-scenarios/#capabilities).
+- **`expect(cond, message)`** — bare `expect` takes an optional second argument, a string or `{ message = "…" }`, appended to the failure text and used as `expects[].description` when no `---` doc comment precedes the call. See [Lua DSL → `expect`](/reference/lua-dsl/#expectexpr-message).
+- **`sigil.log` and `sigil.attach` surface in `sigil run` / `sigil scenario run`.** `--json` carries `logs: [...]` and `attachments: {name: value}` on every scenario entry (always present); human mode prints `log:` lines to stderr as they happen and `attach:` lines after the scenario. `sigil eval`'s lossy feedback and the PR comment are unchanged. See [Lua DSL → `sigil.log` / `sigil.attach`](/reference/lua-dsl/#sigillogmessage-and-sigilattachname-value).
+- **W008 — unknown scenario metadata keys.** `timeout`, `timeout_ms`, `budget_ms` and typos of real keys were silent no-ops; they now warn with a near-miss hint pointing at `budget = { max_seconds = N }`, in both lint modes and under `sigil run`.
+- **Capability inference sees a call result indexed inline** — `expect(sigil.exec("x").status == 0)` in a policy-less scenario now infers `exec` instead of being denied; the same fix feeds E003/E007.
+- **I001 ("no assertions")** counts `expect.<method>()`, `invariant()`, and `sigil.check()`, not only literal `expect(`.
+
 ## [0.30.0] — 2026-08-19 — Meeting in the Middle
 
 The follow-up to Running Boxes. 0.29.0 gave `sigil run` named services and `--endpoints-from`, and gave the configured modes per-service reset hooks — but not to each other, so a box sigil did not deploy still could not be reset from a project-less run. 0.30.0 closes that gap, and fixes a pinning hole the same tool-fed shape exposed. One behavior change to read before upgrading: a `sigil run` that declares only named services (no bare `--endpoint`) is now pinned to those origins instead of running unpinned; a run that declares no origins at all is unchanged.

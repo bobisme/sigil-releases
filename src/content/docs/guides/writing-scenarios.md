@@ -189,6 +189,8 @@ The `policy.capabilities` field is static metadata. `sigil scenario lint` reject
 | `wraith` | `require('lib.wraith')` — the session/auth helper in wraith-generated contract scenarios |
 | `db` | `sigil.db` (Phase C+) |
 
+Under `sigil run` (the project-less runner) the effective set is **declared ∪ inferred**: a scenario with no `policy` gets the capabilities its literal call sites (`sigil.exec(...)`, `sigil.get(...)`, including an inline-indexed `sigil.exec("x").status`) imply, and a declaration is never removed. Inference only sees call sites in the scenario file itself — a capability reached through a `require('lib.x')` helper, `sigil["exec"]`, or a `local f = sigil.exec` alias must be declared. `sigil scenario run` and `sigil eval` use the declaration exactly.
+
 Declaring a capability is necessary but not always sufficient: an operator can deny one outright with `[eval] denied_capabilities` (or `sigil run --deny-capability`). A scenario that declares or calls a denied capability fails lint (E007) before it executes, and the runtime installs a denying stub regardless. `exec` is the usual target — `sigil.exec` runs on the host running sigil, not inside the deployed container. See [Configuration → `[eval]`](/reference/configuration/#eval).
 
 ## Sandbox rules
