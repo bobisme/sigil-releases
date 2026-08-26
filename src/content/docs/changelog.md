@@ -5,6 +5,23 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.32.0] — 2026-08-26 — Plugged In
+
+Sigil can now run WebAssembly Component Model plugins as reproducible project
+dependencies. A scenario loads `require("wasm.codec")`; the checked-in project
+requirement, exact lock, package digests, publisher evidence, host grants, and
+runtime limits determine what executes in both evaluation lanes and later
+replay. Public Codec 1.1.2 and MySQL 0.1.2 packages exercised that complete
+install → lock → dual-lane evaluation → offline replay path before release.
+
+- **A bounded `wasm.<name>` Lua module system.** Plugin functions and WIT records, tuples, lists, options, results, flags, enums, variants, constructors, resources, and methods cross a closed typed boundary. Each scenario/environment lane gets a fresh Lua VM, Wasmtime Store, module cache, quotas, and resource table; memory, value shape, component complexity, fuel, time, calls, instances, and resources are bounded. Cancellation and teardown release retained resources without running untrusted cleanup. See [Using WebAssembly Plugins](/guides/plugins/).
+- **Project dependency commands: `sigil plugin add` and `remove`.** `add NAME[@VERSION]` installs when necessary, writes an exact formatting-preserving `[plugins.require]` entry, and transactionally refreshes `.sigil/sigil.plugins.lock` plus managed LuaLS stubs. `remove NAME` removes project authority, lock entry, and stub while retaining cached bytes. **Upgrade note:** an installed or `current` user-cache version is no longer enough in any execution mode; existing store-only workflows must run `sigil plugin add NAME`.
+- **Deterministic package management and CI sync.** `pack`, `validate`, `inspect`, `install`, `list`, `list-remote`, `info`, `verify`, `use`, `update`, and `uninstall` cover bounded canonical archives and official or explicitly enabled third-party GitHub releases. `plugin lock` resolves reviewed requirements; `lock --update NAME` makes a source change explicit; `plugin sync` installs only exact identities already approved by the lock. See the [CLI reference](/reference/cli/#plugins).
+- **Operator-owned host capabilities, no ambient WASI.** Plugins can request bounded logging, deterministic random, separately authorized entropy, named secrets, and named outbound TCP/TLS endpoints. Effective authority is the intersection of the manifest request, publisher policy, control-ref grant, scenario capability, and operator denylist. Components receive no filesystem, process, environment enumeration, clock, stdio, raw DNS, listener, UDP, or arbitrary Internet surface. See [Configuration → Plugins](/reference/configuration/#plugins).
+- **Keyless provenance for official packages.** Sigil verifies the exact package plus GitHub repository, commit/ref, protected workflow/environment, trigger, hosted runner, SLSA predicate, and public-transparency identity, then pins the selected bundle and trusted root for offline evaluation, replay, and decisions. Historical digest-only packages remain diagnostic and cannot authorize a fresh ALLOW; missing or drifted plugin evidence fails closed.
+- **Plugin evidence is durable but feedback stays lossy.** Reports and `eval.complete` bind exact trusted plugin identities and content-addressed package/component/proof blobs; attestation predicate v2 signs only the coarse plugin-infrastructure marker. Replay is blob-first and independent of the network or mutable cache selection, while agent-visible feedback never exposes plugin identities, lanes, scenario names, or counts.
+- **Clear plugin-manager outcomes.** Human `plugin install` output starts with `Installed NAME@VERSION`; `info` and `verify` use `Plugin …` and `Verified …` headings, and inactive versions name the actual cache selection. JSON output is unchanged.
+
 ## [0.31.0] — 2026-08-19 — Second Report
 
 Another batch from the same external agent, all about the project-less runner being harder to talk to than it should be. The bug first: `sigil run` inferred capabilities from the literal call sites in a scenario file and let that inferred set *replace* the declared `policy.capabilities`, so `exec` declared but called from a `lib/` helper hit the denying stub. Then legibility: `sigil.log` and `sigil.attach` show up in the runner's output, bare `expect` takes a message, unknown scenario keys warn, and I001 stops telling `expect.eq`-only scenarios they have no assertions. One lint tightening to read before upgrading: strict lint (`sigil scenario lint`, promote) now sees a capability call whose result is indexed inline (`sigil.exec("x").status`), so a committed scenario using that shape without declaring the capability newly fails E003 — it was a runtime denial waiting to happen.

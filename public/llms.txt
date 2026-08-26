@@ -27,6 +27,7 @@ Sigil is a merge policy engine for agent-generated pull requests. It turns markd
 ## Guides
 
 - Writing Scenarios: https://runsigil.com/guides/writing-scenarios/
+- Using WebAssembly Plugins: https://runsigil.com/guides/plugins/
 - CI Integration: https://runsigil.com/guides/ci-integration/
 - Configuring Judges: https://runsigil.com/guides/configuring-judges/
 
@@ -35,4 +36,5 @@ Sigil is a merge policy engine for agent-generated pull requests. It turns markd
 - Lua DSL: https://runsigil.com/reference/lua-dsl/
 - Configuration: https://runsigil.com/reference/configuration/
 - CLI: https://runsigil.com/reference/cli/
+- Config JSON Schema: https://runsigil.com/schemas/sigil-config.schema.json
 - Changelog: https://runsigil.com/changelog/

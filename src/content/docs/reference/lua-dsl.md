@@ -198,6 +198,32 @@ Shells out to `agent-browser`. Automatic per-scenario session isolation; base UR
 | `sigil.browser.snapshot()` | Accessibility tree. |
 | `sigil.browser.visible(selector)` | Bool: selector is visible. |
 
+## WebAssembly plugins
+
+A locked project plugin is loaded as a dotted Lua module:
+
+```lua
+local codec = require("wasm.codec")
+local echoed = codec["echo-u32"](42)
+expect(echoed == 42)
+```
+
+The scenario's strict policy declares the exact `wasm.<name>` capability, and
+the project must contain a matching `[plugins.require]` entry plus valid
+`.sigil/sigil.plugins.lock`. Installing bytes in the user cache is not enough.
+Use `sigil plugin add NAME` to adopt the dependency.
+
+Plugin functions and WIT records, tuples, lists, options, results, flags,
+enums, variants, constructors, resources, and resource methods map to bounded
+Lua values. Each scenario/environment lane gets a fresh component instance and
+resource table. A plugin failure is typed infrastructure evidence and can never
+be scored as a behavioral pass.
+
+The namespace is exact: `require("wasm.codec")` is valid;
+`require("wasm:codec")` and `require("codec.wasm")` are not aliases. See
+[Using WebAssembly Plugins](/guides/plugins/) for installation, project locks,
+CI sync, host grants, updates, and removal.
+
 ## Scenario table
 
 Return from every scenario file:
@@ -219,6 +245,8 @@ An unknown key in this table, or inside `budget`/`policy`, is a lint warning (W0
 ## Errors
 
 - `require('sigil')` → error.
+- `require('wasm.NAME')` without a project requirement, exact lock, or
+  `wasm.NAME` capability → fail-closed plugin/capability error.
 - Using a capability not in `policy.capabilities` → scenario aborts with a capability-mismatch error and the scenario is marked failed.
 - `load`, `loadstring`, `loadfile` → unavailable.
 - `math.random`, `math.randomseed` → no-ops.

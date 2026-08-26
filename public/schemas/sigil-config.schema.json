@@ -71,6 +71,10 @@
     },
     "browser": {
       "$ref": "#/$defs/BrowserConfig"
+    },
+    "plugins": {
+      "description": "WebAssembly Component Model plugin configuration.",
+      "$ref": "#/$defs/PluginsConfig"
     }
   },
   "required": [
@@ -430,7 +434,7 @@
           "default": []
         },
         "denied_capabilities": {
-          "description": "Scenario capabilities this project refuses to run (bn-37fi).\n\nEvery name must appear in `KNOWN_CAPABILITIES`\n([`crate::scenario::validate::is_known_capability`]); an unknown\nname is a hard config error at load time, so a typo can never\nsilently widen what is allowed. Matching is ASCII\ncase-insensitive, consistent with E005 and the runtime gate.\n\nEmpty (the default) denies nothing — sigil stays permissive unless\nan operator opts in.\n\nEnforced fail-closed at three layers:\n\n1. **lint** — declaring a denied capability in `policy.capabilities`\n   (or calling something that requires one) is lint error E007, so\n   `sigil scenario lint` catches it in CI before anything runs;\n2. **runtime** — `enforce_policy_runtime_capabilities` treats a\n   denied capability as undeclared and installs the denying stub\n   regardless of what the scenario declared;\n3. **intent tools** — a denied capability is never exposed as a\n   `sigil.intent` tool, even when the call asks for it by name.\n\nSECURITY: `\"exec\"` is the motivating entry. `sigil.exec` runs\n`sh -c <command>` on the **host running sigil** — not inside the\ndeployed container — so a CI that runs third-party or\nagent-authored scenarios should deny it.",
+          "description": "Scenario capabilities this project refuses to run (bn-37fi).\n\nEvery name must satisfy\n[`crate::scenario::validate::is_known_capability`]; an unknown name is\na hard config error at load time, so a typo can never silently widen\nwhat is allowed. Built-in names match ASCII\ncase-insensitively; `wasm.<name>` plugin identities use their exact\nlowercase spelling, consistent with E005 and the runtime gate.\n\nEmpty (the default) denies nothing — sigil stays permissive unless\nan operator opts in.\n\nEnforced fail-closed at three layers:\n\n1. **lint** — declaring a denied capability in `policy.capabilities`\n   (or calling something that requires one) is lint error E007, so\n   `sigil scenario lint` catches it in CI before anything runs;\n2. **runtime** — `enforce_policy_runtime_capabilities` treats a\n   denied capability as undeclared and installs the denying stub\n   regardless of what the scenario declared;\n3. **intent tools** — a denied capability is never exposed as a\n   `sigil.intent` tool, even when the call asks for it by name.\n\nSECURITY: `\"exec\"` is the motivating entry. `sigil.exec` runs\n`sh -c <command>` on the **host running sigil** — not inside the\ndeployed container — so a CI that runs third-party or\nagent-authored scenarios should deny it.",
           "type": "array",
           "items": {
             "type": "string"
@@ -1185,6 +1189,355 @@
           "const": "native"
         }
       ]
+    },
+    "PluginsConfig": {
+      "type": "object",
+      "properties": {
+        "require": {
+          "description": "Project plugin requirements. String entries use the permanent official\n`github:sigil-plugins/NAME` source; third-party sources must be named\nexplicitly in a deny-unknown inline table.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginRequirement"
+          }
+        },
+        "allow_third_party": {
+          "description": "Permit explicit non-official GitHub sources and local authoring, in\naddition to their required source and capability allowlists.",
+          "type": "boolean",
+          "default": false
+        },
+        "github": {
+          "description": "GitHub API authentication settings. Tokens are read only by explicit\nnetworked plugin-manager commands and never persisted. These settings\ncannot add an official repository, workflow, issuer, or trust root.",
+          "$ref": "#/$defs/PluginGithubConfig"
+        },
+        "trust": {
+          "description": "Source and requested-capability policy for every live plugin boundary.\nAllowlists can only narrow live authority; official provenance identity\nand supported trust roots are closed, built-in Sigil policy.",
+          "$ref": "#/$defs/PluginTrustConfig"
+        },
+        "grants": {
+          "description": "Operator-owned host capability grants, keyed by canonical plugin name.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginGrantConfig"
+          },
+          "default": {}
+        },
+        "runtime": {
+          "description": "Host-enforced limits for each scenario's plugin runtime.",
+          "$ref": "#/$defs/PluginRuntimeConfig",
+          "default": {
+            "max_memory": "64MiB",
+            "max_table_elements": 100000,
+            "max_call_seconds": 30,
+            "fuel": 100000000,
+            "max_open_resources": 32,
+            "max_component_instances_per_scenario": 16,
+            "max_random_bytes_per_call": 4096,
+            "max_random_bytes_per_scenario": 65536
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginRequirement": {
+      "description": "One source-bearing project plugin requirement.",
+      "anyOf": [
+        {
+          "description": "Official shorthand: `NAME = \"RANGE\"`.",
+          "type": "string"
+        },
+        {
+          "description": "Explicit third-party source and SemVer range.",
+          "$ref": "#/$defs/ExplicitPluginRequirement"
+        }
+      ]
+    },
+    "ExplicitPluginRequirement": {
+      "description": "Deny-unknown third-party requirement form.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source"
+      ]
+    },
+    "PluginGithubConfig": {
+      "description": "GitHub distribution settings for networked plugin-manager commands.",
+      "type": "object",
+      "properties": {
+        "token_env": {
+          "description": "Environment variable containing an optional GitHub token. The value is\ndeliberately not part of this configuration model.",
+          "type": "string",
+          "default": "SIGIL_GITHUB_TOKEN"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginTrustConfig": {
+      "description": "Source policy for installing and executing plugins.\n\nThis is not a publisher-key, OIDC-policy, or trust-root configuration\nsurface. Matching a source pattern never creates official provenance.",
+      "type": "object",
+      "properties": {
+        "holdout_allowlist": {
+          "description": "Canonical exact GitHub sources or owner-wide `github:owner/*` patterns\npermitted to appear in holdout scenarios. This only narrows the\nseparately verified source identity.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        },
+        "install_allowlist": {
+          "description": "Sources accepted for installation and all live plugin use. This only\nnarrows authority and cannot promote local, third-party, or legacy\ndigest-only bytes to official provenance.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        },
+        "capability_allowlist": {
+          "description": "Source policy independently applied to every requested capability.",
+          "$ref": "#/$defs/PluginCapabilityAllowlistConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginCapabilityAllowlistConfig": {
+      "description": "Source allowlists for each authority-bearing plugin capability.",
+      "type": "object",
+      "properties": {
+        "network": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        },
+        "random": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        },
+        "entropy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        },
+        "log": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginGrantConfig": {
+      "description": "Bounded authority granted to one plugin.",
+      "type": "object",
+      "properties": {
+        "secrets": {
+          "description": "Named secret allowlist over the existing scenario environment source.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "random": {
+          "description": "Permit deterministic seed-derived bytes.",
+          "type": "boolean",
+          "default": false
+        },
+        "entropy": {
+          "description": "Permit nondeterministic OS bytes and mark replay best-effort.",
+          "type": "boolean",
+          "default": false
+        },
+        "log": {
+          "description": "Permit bounded guest log accounting; payload bytes are never emitted.",
+          "type": "boolean",
+          "default": false
+        },
+        "network": {
+          "description": "Named outbound TCP endpoints.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginNetworkGrant"
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginNetworkGrant": {
+      "description": "Host-owned policy for one named outbound TCP endpoint.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "description": "Logical deploy service and port, for example `mysql:3306`.",
+          "type": "string"
+        },
+        "tls": {
+          "description": "Host-selected transport mode.",
+          "$ref": "#/$defs/PluginTlsMode",
+          "default": "disabled"
+        },
+        "tls_server_name": {
+          "description": "Exact SNI and certificate verification name for TLS modes.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tls_ca_file": {
+          "description": "Endpoint-scoped PEM bundle, relative to `sigil.toml`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "connect_timeout": {
+          "description": "Synchronous connect deadline.",
+          "type": "string",
+          "default": "5s"
+        },
+        "io_timeout": {
+          "description": "Synchronous read, write, flush, and TLS deadline.",
+          "type": "string",
+          "default": "10s"
+        },
+        "max_connections": {
+          "description": "Concurrent open stream ceiling for this endpoint and lane.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "default": 2
+        },
+        "max_bytes": {
+          "description": "Combined transferred-byte budget for this endpoint and lane.",
+          "type": "string",
+          "pattern": "^0*[1-9][0-9]*(B|KiB|MiB|GiB)$",
+          "default": "16MiB"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "target"
+      ]
+    },
+    "PluginTlsMode": {
+      "description": "Closed v1 TLS policy.",
+      "oneOf": [
+        {
+          "description": "Explicit deploy-local plaintext.",
+          "type": "string",
+          "const": "disabled"
+        },
+        {
+          "description": "TLS before the guest receives the stream.",
+          "type": "string",
+          "const": "direct"
+        },
+        {
+          "description": "One host-owned TLS upgrade after protocol negotiation.",
+          "type": "string",
+          "const": "upgrade"
+        }
+      ]
+    },
+    "PluginRuntimeConfig": {
+      "description": "Host-enforced plugin runtime limits.\n\nThese defaults are the single configuration source for the Wasmtime host,\nthe generated JSON Schema, the init template, and runtime evidence.",
+      "type": "object",
+      "properties": {
+        "max_memory": {
+          "description": "Aggregate WebAssembly linear-memory and currently live Sigil-owned host\nallocation budget for one component instance, written as binary bytes\n(`B`, `KiB`, `MiB`, or `GiB`). Host allocations include persistent\nadapter objects and transient conversion buffers. The same value is\nalso the per-memory ceiling.",
+          "type": "string",
+          "pattern": "^0*[1-9][0-9]*(B|KiB|MiB|GiB)$",
+          "default": "64MiB"
+        },
+        "max_table_elements": {
+          "description": "Aggregate element budget for all WebAssembly tables in one component\ninstance. The same value is also the per-table ceiling.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "default": 100000
+        },
+        "max_call_seconds": {
+          "description": "Wall-clock deadline for each outer Lua-visible call.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "default": 30
+        },
+        "fuel": {
+          "description": "Guest fuel reset immediately before each outer Lua-visible call.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "default": 100000000
+        },
+        "max_open_resources": {
+          "description": "Maximum live host-owned resource handles in one component instance.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "default": 32
+        },
+        "max_component_instances_per_scenario": {
+          "description": "Maximum live component instances for one scenario and environment.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "default": 16
+        },
+        "max_random_bytes_per_call": {
+          "description": "Maximum deterministic-random or entropy bytes returned by one call.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "default": 4096
+        },
+        "max_random_bytes_per_scenario": {
+          "description": "Combined deterministic-random and entropy byte budget for one plugin,\nscenario, and environment.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "default": 65536
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

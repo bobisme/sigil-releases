@@ -188,8 +188,9 @@ The `policy.capabilities` field is static metadata. `sigil scenario lint` reject
 | `browser` | `sigil.browser.*` |
 | `wraith` | `require('lib.wraith')` — the session/auth helper in wraith-generated contract scenarios |
 | `db` | `sigil.db` (Phase C+) |
+| `wasm.NAME` | `require('wasm.NAME')` — an exact project-locked WebAssembly plugin |
 
-Under `sigil run` (the project-less runner) the effective set is **declared ∪ inferred**: a scenario with no `policy` gets the capabilities its literal call sites (`sigil.exec(...)`, `sigil.get(...)`, including an inline-indexed `sigil.exec("x").status`) imply, and a declaration is never removed. Inference only sees call sites in the scenario file itself — a capability reached through a `require('lib.x')` helper, `sigil["exec"]`, or a `local f = sigil.exec` alias must be declared. `sigil scenario run` and `sigil eval` use the declaration exactly.
+Under `sigil run` (the smoke runner) the effective set is **declared ∪ inferred**: a scenario with no `policy` gets the capabilities its literal call sites (`sigil.exec(...)`, `sigil.get(...)`, `require("wasm.codec")`, including an inline-indexed `sigil.exec("x").status`) imply, and a declaration is never removed. Inference only sees call sites in the scenario file itself — a capability reached through a `require('lib.x')` helper, `sigil["exec"]`, a dynamic plugin name, or a `local f = sigil.exec` alias must be declared. `sigil scenario run` and `sigil eval` use the declaration exactly. A plugin still requires the current project's `[plugins.require]` and exact lock in every execution mode; smoke inference is capability convenience, not dependency resolution.
 
 Declaring a capability is necessary but not always sufficient: an operator can deny one outright with `[eval] denied_capabilities` (or `sigil run --deny-capability`). A scenario that declares or calls a denied capability fails lint (E007) before it executes, and the runtime installs a denying stub regardless. `exec` is the usual target — `sigil.exec` runs on the host running sigil, not inside the deployed container. See [Configuration → `[eval]`](/reference/configuration/#eval).
 
@@ -199,8 +200,10 @@ Declaring a capability is necessary but not always sufficient: an operator can d
 - `math.random` / `math.randomseed` neutered — use `sigil.gen.*`.
 - `load`, `loadstring`, `loadfile` disabled.
 - `require('sigil')` → error (it is a pre-injected global).
-- `require('lib.X')` is the only permitted `require`, and traversal in the module
-  name is rejected.
+- `require('lib.X')` resolves a scenario helper; traversal in the module name is
+  rejected.
+- `require('wasm.NAME')` resolves only an exact project-declared and locked
+  plugin. `wasm:NAME`, `NAME.wasm`, and arbitrary module namespaces are rejected.
 
 ### Where `require('lib.X')` resolves
 

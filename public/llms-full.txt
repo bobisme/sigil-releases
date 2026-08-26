@@ -14,7 +14,9 @@ Core routes:
 - https://runsigil.com/concepts/dark-factory/ explains visible vs holdout scenarios and opaque feedback.
 - https://runsigil.com/concepts/trust-model/ explains earned autonomy, SHADOW/ADVISORY/AUTO, overrides, and trust decay.
 - https://runsigil.com/concepts/ledger/ explains signed append-only event storage and replay.
+- https://runsigil.com/guides/plugins/ explains reproducible WebAssembly Component Model plugin dependencies, project locks, CI sync, host grants, updates, and removal.
 - https://runsigil.com/reference/lua-dsl/ documents scenario APIs including `expect`, `invariant`, `sigil.intent`, `sigil.judge`, HTTP, browser, and generator helpers.
+- https://runsigil.com/schemas/sigil-config.schema.json is the published configuration schema used by generated `sigil.toml` files.
 
 Contact: info@runsigil.com
 Releases: https://github.com/bobisme/sigil-releases/releases/latest

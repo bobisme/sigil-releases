@@ -91,6 +91,72 @@ sigil generate-types [--service <svc>]
 
 Emit `.sigil/types/sigil.lua` — a LuaLS type stub that gives editor autocomplete for the full DSL.
 
+## Plugins
+
+Plugins are project dependencies, not global extensions. The per-user store is
+an immutable byte cache; `[plugins.require]` plus
+`.sigil/sigil.plugins.lock` is runtime authority. See [Using WebAssembly
+Plugins](/guides/plugins/) for the complete workflow.
+
+### `sigil plugin add` / `remove`
+
+```sh
+sigil plugin add NAME[@VERSION]
+sigil plugin add github:OWNER/REPO@VERSION
+sigil plugin remove NAME
+```
+
+`add` resolves and installs the requested release when necessary, writes an
+exact formatting-preserving project requirement, and transactionally refreshes
+the lock and managed `.sigil/types/wasm/` stubs. `remove` deletes that project
+requirement, lock entry, and managed stub while retaining cached package bytes.
+A failed transaction restores the original config bytes.
+
+### `sigil plugin lock` / `sync`
+
+```sh
+sigil plugin lock
+sigil plugin lock --update NAME
+sigil plugin sync
+```
+
+`lock` resolves `[plugins.require]` into exact source, version, digest, host-API,
+and publisher-evidence records. It retains compatible entries and refuses a
+source change unless `--update NAME` makes that change explicit. `sync` is the
+CI operation: it installs only exact packages already approved by the lock and
+never mutates the config, lock, stubs, or cache selection.
+
+### Store and inspection commands
+
+```sh
+sigil plugin install NAME[@VERSION]
+sigil plugin list
+sigil plugin list-remote [NAME]
+sigil plugin info NAME[@VERSION]
+sigil plugin verify NAME[@VERSION]
+sigil plugin use NAME@VERSION
+sigil plugin update [NAME]
+sigil plugin uninstall NAME@VERSION --force
+sigil plugin uninstall NAME --all --force
+```
+
+`install` prints `Installed NAME@VERSION` followed by digest and acquisition
+evidence. These commands operate on the per-user store and `current` authoring
+selection only; they do not make a plugin available to a scenario.
+
+### Package author commands
+
+```sh
+sigil plugin validate ./plugin.toml
+sigil plugin inspect ./plugin.wasm
+sigil plugin pack ./plugin.toml --output-dir ./dist
+sigil plugin install --path ./dist/name-version.sigil-plugin.tar.zst
+```
+
+`pack` emits a deterministic canonical archive. `validate` and `inspect` do not
+grant execution authority. A locally installed archive can be inspected and
+cached but cannot become a project dependency or execute in a scenario.
+
 ## Ledger
 
 ### `sigil ledger list`

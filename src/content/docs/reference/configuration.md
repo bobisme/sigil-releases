@@ -100,6 +100,104 @@ Promoting a scenario to holdout **fails closed** when no recipients are
 configured: an unencrypted holdout would be indistinguishable from a visible
 scenario.
 
+## `[plugins]`
+
+WebAssembly plugins are reviewed project dependencies. A bare requirement name
+always means the matching repository in the official `sigil-plugins` GitHub
+organization; third-party sources require both an explicit source and opt-in.
+
+```toml
+[plugins]
+allow_third_party = false
+
+[plugins.require]
+codec = "=1.1.2"
+mysql = "^0.1"
+
+[plugins.github]
+token_env = "SIGIL_GITHUB_TOKEN"
+
+[plugins.trust]
+install_allowlist = ["github:sigil-plugins/*"]
+holdout_allowlist = ["github:sigil-plugins/*"]
+
+[plugins.trust.capability_allowlist]
+network = ["github:sigil-plugins/*"]
+secrets = ["github:sigil-plugins/*"]
+random  = ["github:sigil-plugins/*"]
+entropy = ["github:sigil-plugins/*"]
+log     = ["github:sigil-plugins/*"]
+```
+
+Use `sigil plugin add NAME` for the usual exact dependency workflow. It updates
+`[plugins.require]`, `.sigil/sigil.plugins.lock`, and the managed
+`.sigil/types/wasm/` stubs as one transaction. `plugin install` changes only
+the per-user cache and does not authorize a project.
+
+Third-party requirements use a source-bearing table and must be admitted by
+`allow_third_party`, `install_allowlist`, and every allowlist for a capability
+their manifest requests:
+
+```toml
+[plugins]
+allow_third_party = true
+
+[plugins.require]
+protobuf = { version = "=1.2.4", source = "github:acme/sigil-protobuf" }
+```
+
+`token_env` names an optional environment variable used only by explicit
+plugin-manager network commands. Its value is never stored, logged, forwarded
+to redirected asset hosts, or exposed to a component.
+
+### `[plugins.grants.<name>]`
+
+A package manifest can request host services, but the request itself grants
+nothing. Operator-owned grants name the exact secret names and network endpoints
+that one plugin may receive:
+
+```toml
+[plugins.grants.mysql]
+secrets = ["MYSQL_USER", "MYSQL_PASSWORD"]
+
+[plugins.grants.mysql.network.database]
+target = "mysql:3306"
+tls = "upgrade"                         # disabled | direct | upgrade
+tls_server_name = "mysql"
+tls_ca_file = ".sigil/certs/mysql-ca.pem"
+connect_timeout = "5s"
+io_timeout = "10s"
+max_connections = 2
+max_bytes = "16MiB"
+```
+
+Guest code sees only the endpoint name `database`, never its host, port, DNS,
+or certificate path. Secret values come from the same `[scenario.env]`
+allowlist as `sigil.env`, but only the names listed for this plugin are visible.
+TLS never falls back to plaintext.
+
+### `[plugins.runtime]`
+
+Plugin limits nest inside the scenario budget and apply to each fresh
+scenario/environment lane:
+
+```toml
+[plugins.runtime]
+max_memory = "64MiB"
+max_table_elements = 100000
+max_call_seconds = 30
+fuel = 100000000
+max_open_resources = 32
+max_component_instances_per_scenario = 16
+max_random_bytes_per_call = 4096
+max_random_bytes_per_scenario = 65536
+```
+
+Fuel bounds guest compute; epoch interruption and host-side deadlines bound
+wall time and cancellation. See the published schema for every package,
+runtime, trust, grant, and endpoint ceiling, and [Using WebAssembly
+Plugins](/guides/plugins/) for the operational workflow.
+
 ## `[judge]`
 
 See [Configuring Judges](/guides/configuring-judges/).

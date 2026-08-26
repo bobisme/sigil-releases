@@ -129,6 +129,8 @@ Read [CI Integration](/guides/ci-integration/) for the full workflow, permission
 ## Next steps
 
 - Read [Writing Scenarios](/guides/writing-scenarios/) for the Lua DSL.
+- Read [Using WebAssembly Plugins](/guides/plugins/) to add reproducible
+  `require("wasm.name")` dependencies.
 - Read [CI Integration](/guides/ci-integration/) to post GitHub checks.
 - Read [Trust Model](/concepts/trust-model/) to configure earned-autonomy thresholds.
 - Read [Dark Factory](/concepts/dark-factory/) to understand why the authoring agent never sees holdout scenarios.
