@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## [0.32.4] — 2026-08-26 — Clean Room
+
+Use this release for new 0.32 installs. It is the same complete Component Model
+plugin system introduced in 0.32.0, followed through clean hosted builds and the
+real Docker-backed evaluation path before publishing the final artifacts.
+
+- **Plugin-free selections stay plugin-free.** A project may declare plugins for other scenarios without forcing every core-DSL run to have those unrelated packages in its user store. The moment a selected scenario uses `require("wasm.NAME")`, the checked-in project requirement, exact lock, immutable package, and scenario capability are still mandatory and fail closed on any mismatch.
+- **The full workspace gate runs in a bounded clean job.** Hosted tests have their own runner and cache, disable test debug symbols, and serialize large integration-test link steps. The current-layout fixture setup and Docker evaluation pipeline now run from a clean checkout, so release validation covers the path users actually install.
+
+## [0.32.3] — 2026-08-26 — One at a Time
+
+The complete hosted test suite was still able to launch several large linkers
+at once and exhaust the runner even though product tests were passing.
+
+- **Workspace test linking is serialized.** Cargo uses one build job for the complete workspace test gate, removing the runner-memory race without dropping or weakening tests.
+
+## [0.32.2] — 2026-08-26 — Separate Circuits
+
+The first stabilization patch exposed two CI-only races that did not belong in
+the plugin runtime: concurrent feature-matrix linking and a command-judge test
+that could answer before consuming its prompt.
+
+- **The plugin feature matrix has its own runner.** Plugins-on and plugins-off checks, tests, and strict Clippy no longer compete with the default workspace linker; both jobs independently gate the release.
+- **Command-judge tests preserve the production pipe contract.** Test providers consume stdin before responding, so they no longer race prompt delivery while production still treats a broken pipe as a fail-closed provider error.
+
 ## [0.32.1] — 2026-08-26 — Green Matrix
 
 The WebAssembly plugin release compiled and passed its 2,509 plugins-disabled

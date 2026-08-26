@@ -64,8 +64,16 @@ operation that writes the reviewed project dependency and lock.
 
 :::note[Cache selection is not runtime authority]
 Changing `sigil plugin use`, installing another version, or modifying another
-project cannot change what this project runs. Every execution path verifies
-`[plugins.require]` against `.sigil/sigil.plugins.lock` and the immutable store.
+project cannot change what this project runs. Whenever a selected scenario loads
+a plugin, every execution path verifies `[plugins.require]` against
+`.sigil/sigil.plugins.lock` and the immutable store.
+:::
+
+:::note[Only selected plugins are preflighted]
+A plugin-free scenario selection can run even when an unrelated project plugin
+is absent from this machine's user store. As soon as any selected scenario uses
+`require("wasm.NAME")`, Sigil requires that exact project declaration, lock entry,
+immutable package, and scenario capability before execution.
 :::
 
 ## What to commit
