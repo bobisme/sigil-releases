@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.32.1] — 2026-08-26 — Green Matrix
+
+The WebAssembly plugin release compiled and passed its 2,509 plugins-disabled
+tests, but the first release-commit CI run then found one strict-Clippy failure
+in that feature matrix: the no-op plugin preflight deliberately retained a
+fallible signature shared with the feature-enabled implementation. This patch
+documents that interface choice with a narrow lint allowance. Runtime behavior
+and the plugin format are unchanged.
+
+- **Plugins-disabled builds are green under strict Clippy.** Shared scenario-run callers still propagate real lock and freeze failures when plugin support is enabled; the disabled build remains a no-op and now passes the same complete CI feature matrix used before release.
+
 ## [0.32.0] — 2026-08-26 — Plugged In
 
 Sigil can now run WebAssembly Component Model plugins as reproducible project
