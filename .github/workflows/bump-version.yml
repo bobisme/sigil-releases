@@ -1,7 +1,7 @@
 name: bump version on sigil release
 
 # Fires when bobisme/sigil emits a `sigil-released` repository_dispatch
-# event (from .github/workflows/notify-releases.yml in that repo).
+# event after its release workflow has published the hosted artifacts.
 # Also exposes manual dispatch for retries / backfills.
 
 on:

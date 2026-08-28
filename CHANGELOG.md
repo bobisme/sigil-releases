@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.32.5] — 2026-08-27 — Data Paths
+
+Sigil's official plugin catalog now covers the practical object-data path:
+fetch bounded bytes from an S3-compatible store, then inspect a single typed
+value in a Parquet file. This patch also fixes host-command capture for
+scenarios whose commands produce substantial output.
+
+- **Official S3 and Parquet plugins.** [`s3@0.1.0`](https://github.com/sigil-plugins/s3/releases/tag/v0.1.0) performs a bounded, read-only object GET from S3-compatible services including MinIO, while [`parquet@0.1.0`](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.0) reads metadata or one typed scalar cell from the resulting bytes. They are independent project dependencies: only S3 receives network authority. See the new [Official Plugins catalog](/plugins/official/) for install commands, grants, usage snippets, and current limits.
+- **`sigil.exec` drains output while commands run.** Stdout and stderr can no longer fill an OS pipe and deadlock the scenario. Each stream retains its first 1 MiB, reports discarded excess through `stdout_truncated` or `stderr_truncated`, and keeps draining until the command exits.
+- **Host commands own their descendants.** Each `sigil.exec` call runs in an isolated process group; timeout, Ctrl+C, output failure, and normal return all reap lingering descendants so background processes cannot escape the scenario.
+
 ## [0.32.4] — 2026-08-26 — Clean Room
 
 Use this release for new 0.32 installs. It is the same complete Component Model
