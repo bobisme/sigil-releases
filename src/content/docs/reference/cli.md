@@ -126,6 +126,11 @@ source change unless `--update NAME` makes that change explicit. `sync` is the
 CI operation: it installs only exact packages already approved by the lock and
 never mutates the config, lock, stubs, or cache selection.
 
+Remote plugin commands honor the standard proxy environment variables and,
+in Sigil 0.32.6 or newer, the operating system TLS trust store. See
+[Corporate proxies and TLS inspection](/guides/plugins/#corporate-proxies-and-tls-inspection)
+for enterprise-network diagnostics.
+
 ### Store and inspection commands
 
 ```sh

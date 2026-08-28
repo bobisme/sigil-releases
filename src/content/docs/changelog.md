@@ -5,6 +5,16 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.32.6] — 2026-08-28 — Trusted Path
+
+Official plugin acquisition now follows the host's TLS trust policy. This
+brings `sigil plugin install` and `sync` in line with browsers and tools such as
+`curl` on enterprise networks that install an interception root, without
+weakening package integrity or provenance checks.
+
+- **Plugin downloads work through trusted enterprise TLS inspection.** GitHub API, release asset, redirect, and attestation-bundle requests use the platform verifier backed by operating-system trust roots, so an installed Netskope or other enterprise root is recognized while certificate-chain and hostname verification stay mandatory. Exact package checksums and Sigstore provenance are still verified independently after download.
+- **Transport failures are diagnosed accurately.** A rustls certificate failure wrapped by the HTTP stack as an I/O error remains `PLUGIN_TLS_TRUST_INVALID`; DNS resolution, invalid proxy configuration, connection refusal, timeout, and other transport failures carry safe, specific causes without exposing credentials or response bodies.
+
 ## [0.32.5] — 2026-08-27 — Data Paths
 
 Sigil's official plugin catalog now covers the practical object-data path:

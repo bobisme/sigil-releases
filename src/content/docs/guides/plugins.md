@@ -174,6 +174,28 @@ sigil plugin uninstall codec@1.1.2 --force
 cache operation. The old unambiguous `plugin remove NAME@VERSION` cache-deletion
 form remains temporarily available with a deprecation warning.
 
+## Corporate proxies and TLS inspection
+
+Plugin acquisition honors `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`, and
+`NO_PROXY`. Certificate-chain and hostname verification are always enabled,
+and Sigil 0.32.6 or newer delegates certificate trust to the operating system.
+If an enterprise proxy such as Netskope re-signs GitHub traffic, install its
+root in the host trust store just as you would for `curl`; Sigil provides no
+insecure skip-verification option.
+
+To distinguish a trust problem from routing or proxy configuration, test the
+same API endpoint on the affected machine:
+
+```sh
+curl -sS -o /dev/null \
+  -w 'HTTP %{http_code}; TLS verify %{ssl_verify_result}\n' \
+  https://api.github.com/repos/sigil-plugins/codec/releases
+```
+
+`TLS verify 0` means `curl` trusts the presented chain. On releases before
+0.32.6, Sigil used a separate bundled root set, so `curl` could succeed while
+plugin installation failed. Upgrade before investigating further.
+
 ## Common failures
 
 | Message | Fix |
@@ -183,4 +205,5 @@ form remains temporarily available with a deprecation warning.
 | Exact locked package is missing in CI | Run `sigil plugin sync` before lint/eval. |
 | `wasm.NAME` capability is missing | Add the exact capability to committed scenario policy; literal requires are inferred only by the smoke runner. |
 | Source or capability policy rejects a package | Narrowly allow the reviewed source under `[plugins.trust]`; do not weaken policy globally. |
+| `PLUGIN_TLS_TRUST_INVALID` | Install the enterprise root in the host trust store and use Sigil 0.32.6 or newer; never disable TLS verification. |
 | Official provenance verification fails | Do not bypass it. Select a valid immutable release or treat the publisher incident as infrastructure REVIEW. |
