@@ -6,6 +6,8 @@ description: Install, adopt, run, update, and remove reproducible Sigil plugin d
 Sigil plugins are WebAssembly Component Model packages exposed to Lua through
 `require("wasm.<name>")`. They are project dependencies: a package in your user
 cache is not available to a scenario until the project declares and locks it.
+See [Official Plugins](/plugins/official/) for the current first-party catalog,
+capability requirements, and complete usage examples.
 
 ## The shortest path
 
