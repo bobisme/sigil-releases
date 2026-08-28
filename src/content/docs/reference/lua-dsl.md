@@ -53,11 +53,16 @@ expect(result.status == 0)
 Runs `sh -c <command>` on the **host running sigil** — not inside the deployed container — with the scenario's environment plus `SIGIL_ENV_URL`, `SIGIL_SCENARIO_ID`, and `SIGIL_SERVICE`. `command` is a single shell string; there is no separate argument array. `opts` accepts `cwd`, `env` (a `key = value` table merged over the scenario env), and `stdin`.
 
 Returns `{ status, stdout, stderr, stdout_truncated, stderr_truncated }`. `status`
-is the process exit code, or `-1` if the process could not be spawned or ran
-past the scenario's time budget. Stdout and stderr are drained concurrently;
+is the process exit code, or `-1` if the process could not be spawned, output
+collection failed or timed out, or the process ended without a numeric exit
+code. Stdout and stderr are drained concurrently;
 each retains its first 1 MiB and sets its `*_truncated` flag if more bytes were
-discarded. Each call owns an isolated process group: descendants still running
-when the direct command exits are terminated, as they are on timeout or Ctrl+C.
+discarded. Each call starts its direct command in an isolated process group and
+terminates processes that remain in that group when the command returns, times
+out, or Sigil receives Ctrl+C. This is lifecycle cleanup, not a containment
+boundary: a command that deliberately creates a new session can leave the
+group. Deny the `exec` capability for scenarios that are not trusted with host
+shell access.
 
 ## `sigil.env(name)`
 
