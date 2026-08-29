@@ -91,6 +91,12 @@ shell-quoting it: `--endpoints-from endpoints.json` takes a flat JSON object
 `{ "taxonomy": "http://localhost:8081", ... }` (`-` reads stdin), and every key
 becomes a named service exactly as if you had typed `--endpoint name=url`.
 
+A locked network plugin uses this same map, but only when the service name
+matches its reviewed logical target. For example an S3 grant for `minio:9000`
+resolves from `minio=http://localhost:49172`; the published port replaces
+`9000`. A bare primary endpoint never becomes plugin authority. See
+[Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
+
 Sharing a helper (auth headers, a session setup) across scenarios that call
 multiple services works the same way as any shared Lua helper: put it in
 `lib/` and `require('lib.x')`. See [Where `require('lib.X')` resolves](/guides/writing-scenarios/#where-requirelibx-resolves)
@@ -129,6 +135,20 @@ the entries have the same fields as a `[[scenario.reset]]` table in
 `expected_status`). Everything is validated before the first scenario runs;
 a hook that fails at run time fails that scenario without executing it
 (`failure_class = "crash"`).
+
+## Reproduce generated values
+
+Direct runs choose a fresh 32-byte generator root by default and print it.
+Pass that exact 64-hex value back through `--seed` to reproduce
+`sigil.gen.sample(...)` values; `--json` records it as `rng_seed`:
+
+```sh
+sigil run scenarios/ --endpoint http://localhost:8080 \
+  --seed 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
+  --json
+```
+
+Use `--seed auto` explicitly when a fresh recorded root is what you want.
 
 ## Secrets
 

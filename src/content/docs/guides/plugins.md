@@ -80,7 +80,7 @@ immutable package, and scenario capability before execution.
 
 ## What to commit
 
-`sigil plugin add` and `sigil plugin lock` update a coupled generation:
+`sigil plugin add` and `sigil plugin lock` author a coupled generation:
 
 - `.sigil/sigil.toml` — the reviewed name, exact version/range, and source;
 - `.sigil/sigil.plugins.lock` — exact version, source, package and component
@@ -96,9 +96,13 @@ sigil eval "$PR_REF" --service "$SERVICE"
 ```
 
 `plugin sync` may download a missing exact package, but never chooses a newer
-compatible version and never changes project files or the user-cache selection.
-Evaluation itself has no package repair or network path: missing or drifted
-evidence fails before deployment.
+compatible version and never changes project files, generated stubs, or the
+user-cache selection. The lock is independently sufficient for sync, lint,
+run, eval, and replay: a fresh clone may omit `.sigil/types/wasm/`, then run
+`sigil generate-types` later if an editor needs the stubs. Authoring commands
+still protect unknown or mismatched stub state transactionally. Evaluation
+itself has no package repair or network path: missing or drifted evidence fails
+before deployment.
 
 ## Version ranges and third-party sources
 
@@ -152,6 +156,33 @@ Components receive no ambient filesystem, process, environment enumeration,
 clock, stdio, raw DNS, listener, UDP, or arbitrary Internet access. See
 [Configuration → Plugins](/reference/configuration/#plugins) for the config
 shape.
+
+## Direct runs and named network services
+
+In an evaluation, network grants resolve inside Sigil's deployed PR and
+baseline lanes. When another tool already owns the box, `sigil run` can instead
+resolve a locked plugin route from an explicit named service:
+
+```sh
+sigil run scenarios/ --endpoint minio=http://127.0.0.1:49172
+
+# Or consume the service map produced by an orchestrator:
+rig services --format json \
+  | sigil run scenarios/ --endpoints-from -
+```
+
+For a reviewed grant target of `minio:9000`, the service must be named
+`minio`; the externally published URL port (`49172` above) replaces logical
+port `9000`. A bare `--endpoint http://127.0.0.1:49172` is only the primary HTTP
+base and never grants a plugin route. `sigil scenario run` uses matching named
+`[eval] services` from project configuration in the same way.
+
+All routes are resolved before reset hooks or scenarios execute. Missing or
+unresolvable services, ambiguous DNS results, and incompatible TLS modes fail
+closed. Use `http://` for a grant with `tls = "disabled"` and `https://` for
+`tls = "direct"`; URL-derived direct routes do not support `tls = "upgrade"`.
+Pure plugins such as Parquet need no named route. Concrete socket addresses
+remain host-owned and are not exposed to Lua or reports.
 
 ## Update, remove, and uninstall
 

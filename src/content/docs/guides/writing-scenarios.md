@@ -75,6 +75,22 @@ return {
 }
 ```
 
+The top-level return must be a literal table constructor so Sigil can review
+metadata and capabilities without executing helper code. Returning a value
+built elsewhere, such as `return require("lib.meta").build()`, is lint error
+E009 and aborts preflight before filtering, resets, plugin acquisition,
+deployment, or scenario execution. A literal table may still delegate its
+behavior normally:
+
+```lua
+local helper = require("lib.behavior")
+return {
+  priority = "P1",
+  policy = { capabilities = { "http" } },
+  run = helper.run,
+}
+```
+
 ## Full metadata
 
 ```lua
@@ -92,6 +108,11 @@ return {
 ## `expect(expr)` — power assertions
 
 `expect()` is source-rewritten before execution. It captures both sides of comparisons and every step of dotted chain accesses, then renders an Ariadne code-frame diagnostic on failure with value labels.
+
+The same rewrite applies inside sanctioned `require("lib.x")` helpers,
+including a `run` function returned by a helper. An uncaught failed expectation
+there reports `failure_class = "assertion"`; a separate Lua/runtime failure
+remains `"crash"`.
 
 ```lua
 expect(res.status == 200)
@@ -130,6 +151,12 @@ invariant("email normalization is idempotent", {
 ```
 
 Seeds are derived deterministically: `BLAKE3(scenario_seed ‖ invariant_name ‖ case_index)`. On failure, Sigil shrinks the counterexample (ints toward 0, strings toward shorter).
+
+Generator factories are lazy descriptors. For one deterministic value in
+ordinary `run()` code use `sigil.gen.sample(sigil.gen.uuid())`; direct runners
+accept `--seed <64-hex|auto>` and report the chosen root seed. Sampling uses an
+independent counter and does not perturb invariant case seeds. See the
+[generator reference](/reference/lua-dsl/#sigilgen).
 
 ## `sigil.judge(response, opts)` — LLM judge
 

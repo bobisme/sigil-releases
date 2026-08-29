@@ -233,11 +233,13 @@ compression codecs fail explicitly. Input is capped at 16 MiB.
 
 [View the immutable Parquet 0.1.0 release.](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.0)
 
-:::caution[Use deployed lanes for network plugins]
-Named plugin routes are resolved inside deployed PR and baseline environments.
-Use `sigil scenario run --deploy` or `sigil eval` for MySQL and S3. Direct
-`sigil scenario run --endpoint` does not currently create a lane-local plugin
-route. Pure plugins such as Codec and Parquet can run without one.
+:::note[Direct runs require an explicit named service]
+Deployed PR and baseline lanes resolve S3's reviewed route normally. For a box
+owned by another orchestrator, supply the logical service name explicitly:
+`sigil run scenarios/ --endpoint minio=http://127.0.0.1:PUBLISHED` or pass the
+same `minio` key through `--endpoints-from`. The published port replaces the
+logical `minio:9000` port; a bare primary endpoint is never inferred as plugin
+authority. See [Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
 :::
 
 ## Commit the dependency generation

@@ -35,11 +35,17 @@ Returns:
 {
   status  = 200,
   headers = { ["content-type"] = "application/json", ... },
-  body    = "raw string body",
+  body    = "raw byte string body",
   json    = { ... },            -- parsed if content-type is application/json
   elapsed_ms = 47,
 }
 ```
+
+`body` preserves the exact wire bytes, including embedded NULs and invalid
+UTF-8. When Sigil records internal JSON trace evidence, valid UTF-8 remains a
+string and binary data becomes an explicit bounded `base64-preview` object
+with byte count, BLAKE3 digest, and a preview-truncation flag. That projection
+never changes the Lua value and is not exposed through lossy agent feedback.
 
 ## `sigil.exec(command, [opts])`
 
@@ -55,14 +61,16 @@ Runs `sh -c <command>` on the **host running sigil** — not inside the deployed
 Returns `{ status, stdout, stderr, stdout_truncated, stderr_truncated }`. `status`
 is the process exit code, or `-1` if the process could not be spawned, output
 collection failed or timed out, or the process ended without a numeric exit
-code. Stdout and stderr are drained concurrently;
-each retains its first 1 MiB and sets its `*_truncated` flag if more bytes were
-discarded. Each call starts its direct command in an isolated process group and
-terminates processes that remain in that group when the command returns, times
-out, or Sigil receives Ctrl+C. This is lifecycle cleanup, not a containment
-boundary: a command that deliberately creates a new session can leave the
-group. Deny the `exec` capability for scenarios that are not trusted with host
-shell access.
+code. `stdin`, `stdout`, and `stderr` are exact Lua byte strings, including NUL
+and invalid UTF-8. Stdout and stderr are drained concurrently; each retains its
+first 1 MiB and sets its `*_truncated` flag if more bytes were discarded.
+Internal JSON evidence uses the same explicit `base64-preview` projection
+described for HTTP bodies. Each call starts its direct command in an isolated
+process group and terminates processes that remain in that group when the
+command returns, times out, or Sigil receives Ctrl+C. This is lifecycle cleanup,
+not a containment boundary: a command that deliberately creates a new session
+can leave the group. Deny the `exec` capability for scenarios that are not
+trusted with host shell access.
 
 ## `sigil.env(name)`
 
@@ -70,16 +78,38 @@ Reads from a **strict per-key allowlist**, never the ambient process environment
 
 ## `sigil.gen.*`
 
-Deterministic random-value generators, seeded from the scenario seed.
+Deterministic random-value generators. Every factory returns a lazy descriptor:
 
-- `sigil.gen.email()` — RFC-valid email
-- `sigil.gen.uuid()` — random UUIDv4
-- `sigil.gen.int(min, max)` — bounded integer
-- `sigil.gen.string(len)` — printable string
-- `sigil.gen.choice(list)` — element from a list
-- `sigil.gen.date(start, end)` — ISO-8601 date in range
+- `sigil.gen.int(min, max)`
+- `sigil.gen.float(min, max)`
+- `sigil.gen.bool()`
+- `sigil.gen.uuid()`
+- `sigil.gen.email({ domain = "example.com" })`
+- `sigil.gen.string(min?, max?, charset?)`
+- `sigil.gen.bytes(min, max?)`
+- `sigil.gen.const(value)`
+- `sigil.gen.one_of({ ... })`
 
-`math.random` and `math.randomseed` are neutered — all randomness must go through `sigil.gen.*`.
+Pass descriptors directly to `invariant.for_all`. To materialize one value in
+ordinary `run()` code, sample explicitly:
+
+```lua
+local request_id = sigil.gen.sample(sigil.gen.uuid())
+local email = sigil.gen.sample(sigil.gen.email({ domain = "example.com" }))
+```
+
+`sigil.gen.sample(generator)` uses a domain-separated per-scenario counter.
+Successive calls are deterministic for the recorded root seed without changing
+the invariant case stream; UUIDs are distinct across sample indices, while
+other generators may legitimately repeat. Descriptors also support `:map(fn)`,
+`:filter(predicate, max_attempts?)`, and `:list(min?, max?)` before sampling or
+use in an invariant.
+
+Direct runners accept `--seed <64-hex|auto>` and default to `auto`. The chosen
+32-byte root seed is printed in human output and recorded as top-level
+`rng_seed` in JSON. Replay reuses the recorded root unless given an exact
+64-hex override. `math.random` and `math.randomseed` are neutered — all
+randomness must go through `sigil.gen.*`.
 
 ## `expect(expr, [message])`
 

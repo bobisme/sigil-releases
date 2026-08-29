@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## [0.33.0] — 2026-08-29 — Outside the Lane
+
+Sigil can now compose locked network plugins against services that another
+tool already brought up. Direct runs resolve network authority only from
+explicit named services, while built-in HTTP and process paths preserve exact
+bytes and deterministic generators can produce one-off values without shell
+access.
+
+- **Network plugins work against externally managed boxes.** A plugin grant targeting `minio:9000` can resolve from `--endpoint minio=http://127.0.0.1:PUBLISHED` or the same named service in `--endpoints-from`. The published URL port replaces the logical deployment port. A bare primary endpoint is never inferred as plugin authority, and missing, ambiguous, TLS-incompatible, or upgrade-only routes fail before reset hooks or scenario code. See [Using WebAssembly Plugins → Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
+- **HTTP and `sigil.exec` are binary-safe.** Response bodies, stdin, stdout, and stderr arrive in Lua as exact byte strings, including invalid UTF-8 and embedded NULs. The existing 1 MiB process-output bounds remain byte-accurate; internal JSON evidence marks binary data with a bounded `base64-preview`, byte count, and BLAKE3 digest instead of silently returning an empty or replacement-expanded value.
+- **`sigil.gen.sample(...)` produces deterministic one-shot data.** Generator factories remain lazy descriptors for `invariant`, while ordinary scenario code can sample UUIDs, emails, strings, integers, booleans, bytes, constants, and choices without granting `exec`. Direct runners accept `--seed <64-hex|auto>`, record the selected root seed, reproduce the same sample stream, and do not perturb invariant case generation. See [Lua DSL → Generators](/reference/lua-dsl/#sigilgen).
+- **A reviewed plugin lock can bootstrap a clean clone without editor stubs.** `plugin sync`, lint, run, eval, and replay trust the exact checked-in lock independently of `.sigil/types/wasm/`. Sync never creates or mutates stubs; `sigil generate-types` recreates them when an editor needs them. Authoring commands retain transactional lock/stub protection.
+- **Assertions in required helpers retain assertion classification.** Module-body assertions, nested helpers, and helper-built `run` functions now receive the same diagnostics and `failure_class = "assertion"` as calls authored in the scenario file. A caught assertion followed by a real runtime failure remains a crash.
+- **Dynamic scenario metadata fails closed as E009.** Scenarios must return a literal top-level table so title, priority, budget, tags, and capabilities remain statically reviewable. `return helper.build()` now aborts during lint/preflight before filtering, resets, plugin acquisition, deployment, or scenario execution; a literal table may still delegate its `run` function.
+- **Malformed plugin names point at the CLI argument.** Invalid `NAME` or `NAME@VERSION` values are safely escaped and rejected before network access with the accepted syntax. Canonical SemVer errors and invalid fields inside actual package manifests remain distinct.
+
 ## [0.32.6] — 2026-08-28 — Trusted Path
 
 Official plugin acquisition now follows the host's TLS trust policy. This
