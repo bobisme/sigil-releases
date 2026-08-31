@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.33.1-rc.1] — 2026-08-31 — Signed Delivery Candidate
+
+This prerelease is the cross-machine acceptance build for the host-signed
+object-storage path. It is hosted alongside stable 0.33.0 and deliberately
+does not advance the stable installer, homepage version, or `latest` release.
+
+- **WASM plugins can request bounded host-side SigV4 signing.** Manifest schema version 2 adds an explicit `sigv4` capability whose project allowlist binds secret names, regions, services, signing authorities, and clock skew. Credentials remain in the host; undeclared or ambiguous authority is rejected before I/O.
+- **Patch candidates retain the preceding stable plugin ecosystem.** Sigil `0.33.1-rc.1` accepts plugins compatible with `0.33.0` and plugins that explicitly opt into the RC line, while refusing plugins that require the unreleased final `0.33.1`.
+- **The matching S3 candidate exercises the complete route.** [`s3@0.2.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.2.0-rc.1) performs bounded host-signed GET and HEAD requests against S3-compatible services, alongside the existing anonymous and presigned paths. Install the pair with the [Sigil RC installer](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.1-rc.1), then run `sigil plugin add s3@0.2.0-rc.1` in a project.
+- **Release artifacts target Apple Silicon macOS and x64 Linux.** No Intel macOS artifact is built. The RC remains excluded from Homebrew and stable-site announcement channels.
+
 ## [0.33.0] — 2026-08-29 — Outside the Lane
 
 Sigil can now compose locked network plugins against services that another

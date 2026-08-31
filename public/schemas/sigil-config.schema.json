@@ -1359,6 +1359,15 @@
           "default": [
             "github:sigil-plugins/*"
           ]
+        },
+        "sigv4": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
         }
       },
       "additionalProperties": false
@@ -1395,6 +1404,14 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/PluginNetworkGrant"
+          },
+          "default": {}
+        },
+        "sigv4": {
+          "description": "Opaque, host-owned SigV4 signed-exchange grants.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginSigV4Grant"
           },
           "default": {}
         }
@@ -1475,6 +1492,122 @@
           "type": "string",
           "const": "upgrade"
         }
+      ]
+    },
+    "PluginSigV4Grant": {
+      "description": "Host-owned policy for one opaque SigV4 signed exchange.",
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "description": "Existing logical endpoint in this plugin's network grant.",
+          "type": "string"
+        },
+        "access_key_secret": {
+          "type": "string"
+        },
+        "secret_key_secret": {
+          "type": "string"
+        },
+        "session_token_secret": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "authority": {
+          "description": "Signed HTTP Host authority. This never participates in routing.",
+          "type": "string"
+        },
+        "methods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginSigV4Method"
+          }
+        },
+        "canonical_uri_prefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginSigV4QueryRule"
+          },
+          "default": {}
+        },
+        "header_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "endpoint",
+        "access_key_secret",
+        "secret_key_secret",
+        "region",
+        "service",
+        "authority",
+        "methods",
+        "canonical_uri_prefixes"
+      ]
+    },
+    "PluginSigV4Method": {
+      "description": "Closed read-only SigV4 method set.",
+      "type": "string",
+      "enum": [
+        "GET",
+        "HEAD"
+      ]
+    },
+    "PluginSigV4QueryRule": {
+      "description": "One closed canonical-query value constraint.",
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "exact_values": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "encoded_prefixes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "decimal_max": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "required"
       ]
     },
     "PluginRuntimeConfig": {
