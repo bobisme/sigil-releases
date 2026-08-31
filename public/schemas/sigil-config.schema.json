@@ -1521,7 +1521,7 @@
           "type": "string"
         },
         "authority": {
-          "description": "Signed HTTP Host authority. This never participates in routing.",
+          "description": "Signed HTTP `Host` authority. This never participates in routing and\nneed not equal the named service used to resolve the socket.",
           "type": "string"
         },
         "methods": {

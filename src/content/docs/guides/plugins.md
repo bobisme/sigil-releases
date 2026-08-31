@@ -177,12 +177,37 @@ port `9000`. A bare `--endpoint http://127.0.0.1:49172` is only the primary HTTP
 base and never grants a plugin route. `sigil scenario run` uses matching named
 `[eval] services` from project configuration in the same way.
 
+A complete external service map may also contain bare protocol routes such as
+`mysql://127.0.0.1:3306`. These require an explicit port and are available only
+to locked plugin routing: they do not enter `sigil.service()` or the HTTP
+origin-pin set. This lets the documented `rig services --format json | sigil
+run ... --endpoints-from -` composition consume the whole map without filtering
+out SQL or gRPC services first.
+
 All routes are resolved before reset hooks or scenarios execute. Missing or
 unresolvable services, ambiguous DNS results, and incompatible TLS modes fail
 closed. Use `http://` for a grant with `tls = "disabled"` and `https://` for
 `tls = "direct"`; URL-derived direct routes do not support `tls = "upgrade"`.
+For protocol-specific route schemes, the imported URL supplies the published
+host and port while the reviewed plugin grant remains authoritative for TLS.
 Pure plugins such as Parquet need no named route. Concrete socket addresses
 remain host-owned and are not exposed to Lua or reports.
+
+For a SigV4 grant, `endpoint` and `authority` are deliberately different
+controls. The endpoint and its named-service route select the socket Sigil may
+connect to. `authority` supplies the HTTP `Host` header and is part of the
+canonical request; it never selects or widens the socket route, and Sigil does
+not require it to equal the named service's host. That split supports private
+routes, proxies, and virtual-hosted S3 names while signing the server-visible
+authority exactly.
+
+Changing `authority` to another syntactically valid name is therefore not a
+route-denial test. MinIO can accept any self-consistent `Host` plus signature
+because it has no independent knowledge of Sigil's route name. Test route
+confinement with an undeclared endpoint or dead published socket, and test
+authority handling with a server or proxy that enforces virtual hosts. Direct
+TLS remains stricter: the authority host must equal the endpoint's reviewed TLS
+server name.
 
 ## Update, remove, and uninstall
 

@@ -5,6 +5,18 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.33.1-rc.2] — 2026-08-31 — Route Boundary Candidate
+
+This focused follow-up keeps `s3@0.2.0-rc.1` unchanged and tightens the host
+boundaries exercised by the first candidate. It remains a prerelease alongside
+stable 0.33.0 and does not advance the stable installer, homepage version,
+Homebrew formula, or `latest` release.
+
+- **Whole service maps can include non-HTTP plugin routes.** `--endpoints-from` accepts bare protocol entries such as `mysql://127.0.0.1:3306` for locked plugin routing without adding them to `sigil.service()` or the HTTP origin-pin set. Invalid entries retain the source path, offending key, and cause in the top-level diagnostic. See [CLI → `sigil run`](/reference/cli/#sigil-run).
+- **Plugin boundary refusals identify the layer that rejected them.** Malformed Lua values now name the component function and WIT parameter as scenario-authoring errors; declared SigV4 secrets are checked against the scenario environment before component instantiation; and response ceilings beyond a network grant's remaining wire budget are classified at authorization. Unknown grants, denied secrets, and host resource policy remain fail-closed and cannot be caught into a passing scenario.
+- **Signed authority and socket routing are separate by design.** A named endpoint selects the host-owned socket route. A SigV4 grant's `authority` supplies and signs HTTP `Host`; it neither selects nor widens that route and need not equal the route name, supporting private routes, proxies, and virtual-hosted S3. MinIO accepting a self-consistent alternate `Host` and signature is therefore not a route escape. See [Using Plugins → Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
+- **The candidate still targets only Apple Silicon macOS and x64 Linux.** No Intel macOS artifact is built. [Install Sigil 0.33.1-rc.2](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.1-rc.2) with the unchanged [`s3@0.2.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.2.0-rc.1) package.
+
 ## [0.33.1-rc.1] — 2026-08-31 — Signed Delivery Candidate
 
 This prerelease is the cross-machine acceptance build for the host-signed
