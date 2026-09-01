@@ -5,6 +5,16 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.33.1-rc.4] — 2026-09-01 — Diagnostic Completion Candidate
+
+This narrow candidate keeps `s3@0.2.0-rc.1` unchanged and closes the one
+reporting mismatch found during the rc.3 CAPI run. It remains alongside stable
+0.33.0 and does not advance the stable installer, homepage version, Homebrew
+formula, or `latest` release.
+
+- **Exact plugin failures always include a direct-run diagnostic.** `sigil run --json` now emits the bounded source-free `diagnostic` alongside `error` and `plugin_failure`, including when guest `pcall` caught the immediate Lua exception. The diagnostic contains only the closed error code and its fixed operator summary, never a Lua code frame that could repeat plugin identity, grants, routes, secret names, or arbitrary source text. See [CLI → `sigil run`](/reference/cli/#sigil-run).
+- **The candidate still targets only Apple Silicon macOS and x64 Linux.** No Intel macOS artifact is built. [Install Sigil 0.33.1-rc.4](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.1-rc.4) with the unchanged [`s3@0.2.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.2.0-rc.1) package.
+
 ## [0.33.1-rc.3] — 2026-08-31 — Observable Boundary Candidate
 
 This candidate keeps `s3@0.2.0-rc.1` unchanged and closes the remaining
