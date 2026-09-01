@@ -178,11 +178,12 @@ base and never grants a plugin route. `sigil scenario run` uses matching named
 `[eval] services` from project configuration in the same way.
 
 A complete external service map may also contain bare protocol routes such as
-`mysql://127.0.0.1:3306`. These require an explicit port and are available only
-to locked plugin routing: they do not enter `sigil.service()` or the HTTP
-origin-pin set. This lets the documented `rig services --format json | sigil
-run ... --endpoints-from -` composition consume the whole map without filtering
-out SQL or gRPC services first.
+`mysql://127.0.0.1:3306`. These require an explicitly written port; a written
+scheme default such as `ws://host:80`, `wss://host:443`, or `ftp://host:21`
+counts as explicit. They are available only to locked plugin routing: they do
+not enter `sigil.service()` or the HTTP origin-pin set. This lets the documented
+`rig services --format json | sigil run ... --endpoints-from -` composition
+consume the whole map without filtering out SQL or gRPC services first.
 
 All routes are resolved before reset hooks or scenarios execute. Missing or
 unresolvable services, ambiguous DNS results, and incompatible TLS modes fail

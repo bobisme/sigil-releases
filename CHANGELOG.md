@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [0.33.1-rc.3] — 2026-08-31 — Observable Boundary Candidate
+
+This candidate keeps `s3@0.2.0-rc.1` unchanged and closes the remaining
+operator-observability and service-map papercuts found during the rc.2 CAPI
+run. It remains alongside stable 0.33.0 and does not advance the stable
+installer, homepage version, Homebrew formula, or `latest` release.
+
+- **Plugin infrastructure failures are machine-readable in direct-run JSON.** Exact typed failures retain their safe fixed `error` and `diagnostic` and add `plugin_failure = {code, stage, operation?, message}`. The projection excludes plugin identity and version, routes, source chains, secret names, and secret values; agent-visible holdout feedback remains coarse.
+- **Explicit default ports survive imported-route validation.** `--endpoints-from` accepts non-HTTP routes that spell their scheme default, including `ws://host:80`, `wss://host:443`, and `ftp://host:21`. Omitting the port still fails before scenarios run.
+- **Malformed fixed-record diagnostics are deterministic.** An overfull plugin argument always reports the fixed-arity violation, while a same-size misspelled field always reports an unknown field, independent of Lua table iteration order.
+- **S3 body and wire limits are documented separately.** The object ceiling reserves exactly 64 KiB of host response framing before I/O, request bytes need separate headroom, host policy refusal remains uncatchable infrastructure, and a typed object-body `limit` remains catchable but never returns partial bytes.
+- **The candidate still targets only Apple Silicon macOS and x64 Linux.** No Intel macOS artifact is built. [Install Sigil 0.33.1-rc.3](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.1-rc.3) with the unchanged [`s3@0.2.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.2.0-rc.1) package.
+
 ## [0.33.1-rc.2] — 2026-08-31 — Route Boundary Candidate
 
 This focused follow-up keeps `s3@0.2.0-rc.1` unchanged and tightens the host

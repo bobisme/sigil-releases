@@ -175,8 +175,22 @@ return {
 }
 ```
 
-The maximum object body is 16 MiB. The logical endpoint is also the HTTP
-`Host`, so a presigned query must target that in-environment name.
+The Lua `max-bytes` argument limits the decoded object body; the network
+grant's `max_bytes` limits aggregate request and response bytes on the wire.
+Before I/O, S3 asks the host to reserve the body ceiling plus exactly 64 KiB of
+possible response framing. The grant must therefore exceed the Lua ceiling by
+at least 65,536 bytes—65,535 bytes is refused—and request bytes need separate
+headroom. The example uses another 12 KiB for an 8 KiB presigned query, a
+percent-expanded key, endpoint, and HTTP framing: 4 MiB + 64 KiB + 12 KiB =
+4,172 KiB.
+
+A reservation that does not fit is an uncatchable
+`PLUGIN_RESOURCE_LIMIT`/`plugin_infrastructure` failure. A response body that
+exceeds the plugin's Lua ceiling instead returns `nil, {class = "limit", ...}`
+with no partial bytes. That typed result is catchable by design, so scenarios
+must assert the error return as the sample does rather than relying on
+`pcall`. The maximum object body is 16 MiB. The logical endpoint is also the
+HTTP `Host`, so a presigned query must target that in-environment name.
 
 [View the immutable S3 0.1.0 release.](https://github.com/sigil-plugins/s3/releases/tag/v0.1.0)
 
