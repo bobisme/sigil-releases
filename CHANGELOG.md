@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## [0.33.1] — 2026-09-01 — Field-Proven Plugins
+
+The complete plugin boundary was accepted against an externally orchestrated
+CAPI service graph on Apple Silicon after four focused release candidates.
+Stable 0.33.1 advances the installer, `latest`, and Homebrew while retaining
+the smaller Apple Silicon macOS plus x64 Linux artifact matrix.
+
+- **Private S3 reads can be signed by the host.** Bounded SigV4 grants bind named secrets, region, service, authority, methods, paths, query fields, and headers while the named endpoint remains the only socket route. Guest Lua names the grant but never receives credentials.
+- **Plugin failures are safe and machine-readable.** Direct-run JSON retains fixed `error` and source-free `diagnostic` strings plus `plugin_failure = {code, stage, operation?, message}` without plugin identity, grants, routes, source chains, or secret material. Capability, secret, and host resource-policy failures override guest `pcall` and a guest PASS.
+- **Externally managed service maps compose cleanly.** `--endpoints-from` accepts non-HTTP routes such as `mysql://host:3306` for locked plugins without adding them to `sigil.service()` or the HTTP origin-pin set; explicitly written default ports remain valid.
+- **Plugin projects bootstrap without hidden generated state.** The first official `plugin add` creates a minimal schema-linked project config, and authoring commands reconstruct missing generated stubs from an approved lock while refusing unknown state.
+- **Argument and policy diagnostics are precise and deterministic.** Malformed WIT values name the component function and parameter, fixed-record errors no longer depend on Lua iteration order, and selected-plugin uninstall refusal no longer masquerades as a version conflict.
+- **The release is field-accepted.** The reporting CAPI box verified byte-exact private S3 GET and HEAD, Parquet handoff, all documented profile verdicts, exact resource ceilings, fail-closed caught failures, and clean targeted leak scans. [Install Sigil 0.33.1](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.1) with the accepted [`s3@0.2.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.2.0-rc.1) package.
+
 ## [0.33.1-rc.4] — 2026-09-01 — Diagnostic Completion Candidate
 
 This narrow candidate keeps `s3@0.2.0-rc.1` unchanged and closes the one
