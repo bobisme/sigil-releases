@@ -24,7 +24,7 @@ reproducibility lock, and generates the matching LuaLS stub.
 | Plugin | Release | What it does | Requested host capabilities |
 |---|---:|---|---|
 | [`codec`](#codec-112) | `1.1.2` | Reference plugin that echoes a `u32` | None |
-| [`mysql`](#mysql-020) | `0.2.0` | Stateful typed SQL for SingleStore 5.7 and MySQL 8 | Network and named secrets |
+| [`mysql`](#mysql-021-rc1) | `0.2.1-rc.1` | Stateful typed SQL for SingleStore 5.7 and complete MySQL 8 authentication | Network, named secrets, and entropy |
 | [`s3`](#s3-030-rc1) | `0.3.0-rc.1` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
 | [`parquet`](#parquet-011) | `0.1.1` | Parquet metadata plus typed cell, column, and projected-row reads | None |
 
@@ -61,17 +61,19 @@ return {
 
 [View the immutable Codec 1.1.2 release.](https://github.com/sigil-plugins/codec/releases/tag/v1.1.2)
 
-## MySQL 0.2.0
+## MySQL 0.2.1-rc.1
 
-MySQL is a stateful, bounded Classic Protocol driver for SingleStore's MySQL
-5.7 wire dialect with `mysql_native_password` and stock MySQL 8 with
-`caching_sha2_password`. Sigil owns endpoint resolution, TCP, TLS verification,
-timeouts, byte quotas, secret grants, cancellation, and teardown; the
-component sees only a logical endpoint and the names of specifically granted
-secrets.
+This MySQL prerelease is a stateful, bounded Classic Protocol driver for
+SingleStore's MySQL 5.7 wire dialect and stock MySQL 8. It completes cold and
+warm `caching_sha2_password`, server auth-switch handling, and
+`mysql_native_password`; a wrong password is a typed authentication failure
+with the server's bounded vendor code and SQLSTATE. Sigil owns endpoint
+resolution, TCP, TLS verification, timeouts, byte quotas, secret grants,
+entropy, cancellation, and teardown; the component sees only a logical
+endpoint and the names of specifically granted secrets.
 
 ```sh
-sigil plugin add mysql@0.2.0
+sigil plugin add mysql@0.2.1-rc.1
 ```
 
 Expose the credential names to scenarios, grant those names to this plugin,
@@ -144,7 +146,7 @@ The driver never retries, reconnects, replays, or opens a replacement session
 after an ambiguous failure. It does not support prepared statements, the
 binary protocol, multi-statements or multi-results, or `LOCAL INFILE`.
 
-[View the immutable MySQL 0.2.0 release.](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.0)
+[View the immutable MySQL 0.2.1-rc.1 prerelease.](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.1-rc.1)
 
 ## S3 0.3.0-rc.1
 
@@ -152,7 +154,8 @@ S3 performs bounded, read-only path-style GET, HEAD, and one ListObjectsV2
 page against S3-compatible stores such as MinIO. Anonymous and presigned
 requests remain available; private requests name an opaque SigV4 grant so the
 component never receives credentials, signing time, authority, or signature
-material. This prerelease requires Sigil 0.33.2-rc.1 or newer.
+material. Use this candidate with Sigil 0.33.2-rc.2 or a compatible newer
+release.
 
 ```sh
 sigil plugin add s3@0.3.0-rc.1
@@ -245,8 +248,10 @@ expect(bytes ~= nil, get_error and get_error.message)
 Each listed object returns a string key, unsigned size, exact optional ETag,
 and unnormalized optional Last-Modified text. A truncated page returns one
 opaque `next-continuation-token`; the plugin never follows it automatically.
-Host API 1.2 validates and signs that token only under the grant's explicit
-bounded query rule, before I/O, without logging it.
+Host API 1.2 validates the token's allowed canonical ASCII form and encoded
+length under the grant before signing or I/O. The host does not add token
+contents to diagnostics or evidence; scenario Lua receives the token, so code
+that explicitly logs or attaches it remains responsible for that disclosure.
 
 GET reserves its body ceiling plus exactly 64 KiB of response framing; LIST
 reserves 4 MiB plus 64 KiB. A reservation outside the network grant is an
@@ -312,10 +317,11 @@ return {
 
 Rows are positional in the exact order of `batch.columns`. Duplicate, unknown,
 nested, repeated, or unsupported projected columns fail before page decode.
-Bounds return `limit`, never a shorter successful result. NULL remains tagged,
-decimal keeps exact precision, scale, and unscaled bytes, and timestamp cells
-retain their raw integer plus unit; the reader never normalizes the value a
-scenario is trying to assert. Required or optional non-repeated scalar columns,
+An out-of-bounds row window returns `not-found` and is never silently clamped
+to a shorter successful result. NULL remains tagged, decimal keeps exact
+precision, scale, and unscaled bytes, and timestamp cells retain their raw
+integer plus unit; the reader never normalizes the value a scenario is trying
+to assert. Required or optional non-repeated scalar columns,
 plain or dictionary encoding, and uncompressed or Snappy pages are supported.
 INT96, nanosecond temporal values, external column chunks, and other compression
 codecs fail explicitly. Input is capped at 16 MiB.

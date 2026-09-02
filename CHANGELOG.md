@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [0.33.2-rc.2] — 2026-09-02 — External Data Remediation Candidate
+
+This candidate carries the four follow-ups from the first real CAPI migration
+run. It remains a prerelease alongside stable 0.33.1 and does not advance the
+stable installer, homepage version, Homebrew formula, or `latest` release.
+
+- **Plugin routes preserve orchestrator-native endpoint names.** Grant targets may use exact dotted keys such as `singlestore-pipelines.sql:3306`, with no fallback to the base service. Direct `--endpoint sql=mysql://127.0.0.1:3306` now has the same plugin-only semantics as an identical `--endpoints-from` entry: it is excluded from `sigil.service()`, HTTP origin pinning, and reset targets.
+- **Plugin secrets are resolved when a selected operation needs them.** An unused generic or SigV4 grant no longer aborts an unrelated scenario. A selected missing secret still fails closed and cannot be caught into a passing run; trusted human output names the exact missing `--env` entry, while JSON, eval feedback, and ledger evidence omit the name and value.
+- **The matching MySQL candidate completes the authentication surface.** [`mysql@0.2.1-rc.1`](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.1-rc.1) handles cold and warm `caching_sha2_password`, server auth switches, and `mysql_native_password`, and preserves authentication vendor code and SQLSTATE without retrying or reconnecting. Use it with [Sigil 0.33.2-rc.2](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.2-rc.2), unchanged [`parquet@0.1.1`](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.1), and unchanged [`s3@0.3.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0-rc.1).
+- **The candidate awaits the repeated real-box gate.** Portable checks and public provenance are complete; stable promotion still requires the CAPI operator to repeat the five-profile run without the former dotted-route alias and explicitly accept the exact public identities.
+- **Artifacts remain Apple Silicon macOS and x64 Linux only.** No Intel macOS artifact is built.
+
 ## [0.33.2-rc.1] — 2026-09-02 — Bounded Pagination Candidate
 
 This prerelease makes the reviewed typed-data plugin set installable from

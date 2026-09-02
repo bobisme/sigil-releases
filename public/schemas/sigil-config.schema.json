@@ -1423,7 +1423,7 @@
       "type": "object",
       "properties": {
         "target": {
-          "description": "Logical deploy service and port, for example `mysql:3306`.",
+          "description": "Logical service-map key and deploy port, for example `mysql:3306` or\n`singlestore-pipelines.sql:3306`.",
           "type": "string"
         },
         "tls": {

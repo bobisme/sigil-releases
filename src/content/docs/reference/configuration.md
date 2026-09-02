@@ -112,7 +112,7 @@ allow_third_party = false
 
 [plugins.require]
 codec = "=1.1.2"
-mysql = "^0.1"
+mysql = "^0.2"
 
 [plugins.github]
 token_env = "SIGIL_GITHUB_TOKEN"
@@ -129,8 +129,10 @@ entropy = ["github:sigil-plugins/*"]
 log     = ["github:sigil-plugins/*"]
 ```
 
-Use `sigil plugin add NAME` for the usual exact dependency workflow. It updates
-`[plugins.require]`, `.sigil/sigil.plugins.lock`, and the managed
+Use `sigil plugin add NAME` for the usual exact dependency workflow. If the
+directory has no `.sigil/sigil.toml`, the first official add creates a minimal
+schema-linked config. It updates `[plugins.require]`,
+`.sigil/sigil.plugins.lock`, and the managed
 `.sigil/types/wasm/` stubs as one transaction. `plugin install` changes only
 the per-user cache and does not authorize a project.
 
@@ -161,7 +163,7 @@ that one plugin may receive:
 secrets = ["MYSQL_USER", "MYSQL_PASSWORD"]
 
 [plugins.grants.mysql.network.database]
-target = "mysql:3306"
+target = "singlestore-pipelines.sql:3306"
 tls = "upgrade"                         # disabled | direct | upgrade
 tls_server_name = "mysql"
 tls_ca_file = ".sigil/certs/mysql-ca.pem"
@@ -172,9 +174,23 @@ max_bytes = "16MiB"
 ```
 
 Guest code sees only the endpoint name `database`, never its host, port, DNS,
-or certificate path. Secret values come from the same `[scenario.env]`
-allowlist as `sigil.env`, but only the names listed for this plugin are visible.
-TLS never falls back to plaintext.
+or certificate path. Route service names are exact and may contain dots:
+`singlestore-pipelines.sql` never falls back to `singlestore-pipelines`; the
+matching `[eval] services`, named `--endpoint`, or `--endpoints-from` entry
+supplies the published socket. Secret values come from the same
+`[scenario.env]` allowlist as `sigil.env`, but only the names listed for this
+plugin are visible. Names are resolved on demand when a selected operation asks
+for them. Trusted human direct-run output names a missing `--env` entry; JSON,
+eval feedback, and ledger evidence omit it. TLS never falls back to plaintext.
+
+SigV4 grants live under `[plugins.grants.<plugin>.sigv4.<grant>]` and bind one
+network endpoint, access-key and secret-key names, region, service, signed
+authority, methods, canonical URI prefixes, header names, and per-query-field
+rules. Fixed values, decimal ceilings, encoded prefixes, or bounded opaque
+values must be admitted explicitly; the host validates the canonical request
+against that allowlist before signing or I/O. Continuation-token contents are
+not added to host diagnostics or evidence, though scenario Lua receives a
+returned token and can explicitly log or attach it.
 
 ### `[plugins.runtime]`
 

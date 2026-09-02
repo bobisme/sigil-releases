@@ -11,7 +11,7 @@ capability requirements, and complete usage examples.
 
 ## The shortest path
 
-From the project containing `.sigil/sigil.toml`:
+From a new or existing project directory:
 
 ```sh
 sigil plugin add codec
@@ -20,7 +20,9 @@ git add .sigil/sigil.toml .sigil/sigil.plugins.lock .sigil/types/wasm
 
 `plugin add` resolves the highest stable official Codec release, installs it if
 necessary, writes an **exact** requirement, creates the reproducibility lock,
-and generates the matching LuaLS stub. Commit all three artifacts.
+and generates the matching LuaLS stub. If `.sigil/sigil.toml` does not exist,
+the first official add creates a minimal schema-linked, non-deploying project
+config. Commit all three artifacts.
 
 Then load it from a scenario:
 
@@ -157,6 +159,13 @@ clock, stdio, raw DNS, listener, UDP, or arbitrary Internet access. See
 [Configuration → Plugins](/reference/configuration/#plugins) for the config
 shape.
 
+Granting a secret name does not eagerly require its value. Sigil resolves a
+named secret only when the selected plugin operation asks for it, so an unused
+generic or SigV4 grant cannot break an unrelated scenario. A selected missing
+secret still fails closed and cannot be caught into a passing run. Trusted
+human direct-run output names the exact `--env NAME` to supply; JSON reports,
+eval feedback, and ledger evidence omit both the name and value.
+
 ## Direct runs and named network services
 
 In an evaluation, network grants resolve inside Sigil's deployed PR and
@@ -166,6 +175,9 @@ resolve a locked plugin route from an explicit named service:
 ```sh
 sigil run scenarios/ --endpoint minio=http://127.0.0.1:49172
 
+# Protocol-specific named routes work on argv too:
+sigil run scenarios/ --endpoint s2sql=mysql://127.0.0.1:3306
+
 # Or consume the service map produced by an orchestrator:
 rig services --format json \
   | sigil run scenarios/ --endpoints-from -
@@ -173,12 +185,16 @@ rig services --format json \
 
 For a reviewed grant target of `minio:9000`, the service must be named
 `minio`; the externally published URL port (`49172` above) replaces logical
-port `9000`. A bare `--endpoint http://127.0.0.1:49172` is only the primary HTTP
-base and never grants a plugin route. `sigil scenario run` uses matching named
-`[eval] services` from project configuration in the same way.
+port `9000`. Dot-separated orchestrator endpoint keys are exact too: a target
+of `singlestore-pipelines.sql:3306` resolves only the
+`singlestore-pipelines.sql` map entry and never falls back to
+`singlestore-pipelines`. A bare `--endpoint http://127.0.0.1:49172` is only the
+primary HTTP base and never grants a plugin route. `sigil scenario run` uses
+matching named `[eval] services` from project configuration in the same way.
 
-A complete external service map may also contain bare protocol routes such as
-`mysql://127.0.0.1:3306`. These require an explicitly written port; a written
+A complete external service map—and named `--endpoint` flags—may also contain
+bare protocol routes such as `mysql://127.0.0.1:3306`. These require an
+explicitly written port; a written
 scheme default such as `ws://host:80`, `wss://host:443`, or `ftp://host:21`
 counts as explicit. They are available only to locked plugin routing: they do
 not enter `sigil.service()` or the HTTP origin-pin set. This lets the documented
@@ -258,6 +274,7 @@ plugin installation failed. Upgrade before investigating further.
 | Message | Fix |
 |---|---|
 | Plugin is not declared for this project | Run `sigil plugin add NAME`. |
+| A selected plugin secret is unavailable | Add the exact `--env NAME` printed by trusted human direct-run output; do not put its value on argv. |
 | Lock is absent or stale | Review the requirement, then run `sigil plugin lock`. |
 | Exact locked package is missing in CI | Run `sigil plugin sync` before lint/eval. |
 | `wasm.NAME` capability is missing | Add the exact capability to committed scenario policy; literal requires are inferred only by the smoke runner. |
