@@ -5,6 +5,18 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.33.2-rc.1] — 2026-09-02 — Bounded Pagination Candidate
+
+This prerelease makes the reviewed typed-data plugin set installable from
+public immutable releases for final CAPI-box acceptance. It remains alongside
+stable 0.33.1 and does not advance the stable installer, homepage version,
+Homebrew formula, or `latest` release.
+
+- **SigV4 grants can authorize one bounded opaque continuation token.** Host API 1.2 adds `opaque_max_encoded_bytes` for exact allowlisted query fields. The host rejects missing policy, non-ASCII input, malformed or noncanonical percent encoding, and encoded values over the declared limit before signing or I/O. Host-generated diagnostics and evidence do not automatically include the token; scenario Lua still controls any explicit logging or attachment of the returned value. See [Using Plugins → host capabilities and grants](/guides/plugins/#host-capabilities-and-grants).
+- **The complete typed-data set is publicly lockable.** Stable [`mysql@0.2.0`](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.0) adds stateful typed SQL for SingleStore's MySQL 5.7 dialect and MySQL 8, while stable [`parquet@0.1.1`](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.1) adds bounded column and projected-row reads. Prerelease [`s3@0.3.0-rc.1`](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0-rc.1) composes caller-driven ListObjectsV2 pagination with read-only HEAD and GET. See [Official Plugins](/plugins/official/).
+- **Compatibility fails closed.** S3 0.3.0-rc.1 uses manifest schema 3 and requires Sigil 0.33.2-rc.1 or newer; stable Sigil 0.33.1 rejects it rather than silently omitting Host API 1.2 policy.
+- **The candidate targets only Apple Silicon macOS and x64 Linux.** No Intel macOS artifact is built. [Install Sigil 0.33.2-rc.1](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.2-rc.1); the separate real CAPI-box acceptance gate remains open.
+
 ## [0.33.1] — 2026-09-01 — Field-Proven Plugins
 
 The complete plugin boundary was accepted against an externally orchestrated

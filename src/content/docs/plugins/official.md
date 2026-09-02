@@ -15,17 +15,18 @@ Run this command for the live inventory:
 sigil plugin list-remote
 ```
 
-`sigil plugin add` is the normal way to adopt one. Run it in the project that
-contains `.sigil/sigil.toml`; it downloads the package when necessary, declares
-the exact project dependency, writes the reproducibility lock, and generates
-the matching LuaLS stub.
+`sigil plugin add` is the normal way to adopt one. For the first official
+plugin in a new directory it creates a minimal non-deploying project config;
+otherwise it preserves the existing `.sigil/sigil.toml`. It downloads the
+package when necessary, declares the exact dependency, writes the
+reproducibility lock, and generates the matching LuaLS stub.
 
 | Plugin | Release | What it does | Requested host capabilities |
 |---|---:|---|---|
 | [`codec`](#codec-112) | `1.1.2` | Reference plugin that echoes a `u32` | None |
-| [`mysql`](#mysql-012) | `0.1.2` | Bounded MySQL 8.4 text-protocol driver | Network and named secrets |
-| [`s3`](#s3-010) | `0.1.0` | Bounded, read-only S3-compatible object fetch | Network |
-| [`parquet`](#parquet-010) | `0.1.0` | Parquet metadata inspection and typed scalar reads | None |
+| [`mysql`](#mysql-020) | `0.2.0` | Stateful typed SQL for SingleStore 5.7 and MySQL 8 | Network and named secrets |
+| [`s3`](#s3-030-rc1) | `0.3.0-rc.1` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
+| [`parquet`](#parquet-011) | `0.1.1` | Parquet metadata plus typed cell, column, and projected-row reads | None |
 
 :::note[Declare plugin capabilities in committed scenarios]
 Strict project lint expects each required module in `policy.capabilities`, such
@@ -60,15 +61,17 @@ return {
 
 [View the immutable Codec 1.1.2 release.](https://github.com/sigil-plugins/codec/releases/tag/v1.1.2)
 
-## MySQL 0.1.2
+## MySQL 0.2.0
 
-MySQL is a bounded MySQL 8.4 Classic Protocol driver. Sigil owns endpoint
-resolution, TCP, TLS verification, timeouts, byte quotas, secret grants,
-cancellation, and teardown; the component sees only a logical endpoint and the
-names of specifically granted secrets.
+MySQL is a stateful, bounded Classic Protocol driver for SingleStore's MySQL
+5.7 wire dialect with `mysql_native_password` and stock MySQL 8 with
+`caching_sha2_password`. Sigil owns endpoint resolution, TCP, TLS verification,
+timeouts, byte quotas, secret grants, cancellation, and teardown; the
+component sees only a logical endpoint and the names of specifically granted
+secrets.
 
 ```sh
-sigil plugin add mysql@0.1.2
+sigil plugin add mysql@0.2.0
 ```
 
 Expose the credential names to scenarios, grant those names to this plugin,
@@ -93,7 +96,7 @@ max_connections = 2
 max_bytes = "16MiB"
 ```
 
-Then connect and issue a text query:
+Then keep one server session across typed queries and commands:
 
 ```lua
 return {
@@ -108,40 +111,55 @@ return {
       ["username-secret"] = "MYSQL_USER",
       ["password-secret"] = "MYSQL_PASSWORD",
       database = "app",
+      ["max-rows"] = 1000,
+      ["max-result-bytes"] = 8 * 1024 * 1024,
     })
-    expect(connect_error == nil, connect_error and connect_error.message)
+    expect(connection ~= nil, connect_error and connect_error.message)
 
-    local result, query_error =
-      connection:query("SELECT 'ready' AS marker")
-    expect(query_error == nil, query_error and query_error.message)
-    expect(result.tag == "rows")
+    local rows, query_error = connection:query(
+      "SELECT UNIX_TIMESTAMP(created_at), amount, nullable_note FROM records"
+    )
+    expect(rows ~= nil, query_error and query_error.message)
+    expect(rows.rows[1].cells[1].tag == "signed")
+    expect(rows.rows[1].cells[2].tag == "decimal")
+    expect(rows.rows[1].cells[3].tag == "null")
+
+    local command, exec_error =
+      connection:exec("CREATE TEMPORARY TABLE probe(id BIGINT)")
+    expect(command ~= nil, exec_error and exec_error.message)
+    expect(command["affected-rows"] == 0)
+    expect(command.warnings == 0)
 
     connection:close()
   end,
 }
 ```
 
-The experimental `sigil:sql/driver@0.1.0` interface supports TLS upgrade,
-`caching_sha2_password`, text queries, and one result. It does not support
-prepared statements, the binary protocol, multi-statements or multi-results,
-retry, reconnect, or `LOCAL INFILE`.
+Integers remain integers, DECIMAL remains exact text, NULL is a tagged value
+rather than absent Lua data, and temporal values retain their server lexeme and
+declared type. Server failures preserve bounded `vendor-code` and `sqlstate`.
+A semantic row or result-byte limit returns no partial result and closes the
+session; a host wire ceiling is an unmaskable `plugin_infrastructure` failure.
+The driver never retries, reconnects, replays, or opens a replacement session
+after an ambiguous failure. It does not support prepared statements, the
+binary protocol, multi-statements or multi-results, or `LOCAL INFILE`.
 
-[View the immutable MySQL 0.1.2 release.](https://github.com/sigil-plugins/mysql/releases/tag/v0.1.2)
+[View the immutable MySQL 0.2.0 release.](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.0)
 
-## S3 0.1.0
+## S3 0.3.0-rc.1
 
-S3 performs one bounded, path-style HTTP `GET` from an S3-compatible object
-store such as MinIO. It is read-only and accepts anonymous access or a
-caller-supplied presigned query. It does not accept access keys, sign requests,
-follow redirects, list buckets, issue ranges, or write objects.
+S3 performs bounded, read-only path-style GET, HEAD, and one ListObjectsV2
+page against S3-compatible stores such as MinIO. Anonymous and presigned
+requests remain available; private requests name an opaque SigV4 grant so the
+component never receives credentials, signing time, authority, or signature
+material. This prerelease requires Sigil 0.33.2-rc.1 or newer.
 
 ```sh
-sigil plugin add s3@0.1.0
+sigil plugin add s3@0.3.0-rc.1
 ```
 
-Map the guest-visible `object-store` endpoint to MinIO. The host byte quota
-includes request and response framing, so this example budgets 4 MiB for the
-object plus bounded wire overhead:
+The operator owns the socket route, secrets, signed Host, methods, canonical
+paths, and exact query policy:
 
 ```toml
 [plugins.grants.s3.network.object-store]
@@ -150,61 +168,107 @@ tls = "disabled"
 connect_timeout = "5s"
 io_timeout = "10s"
 max_connections = 1
-max_bytes = "4172KiB"
+max_bytes = "8MiB"
+
+[plugins.grants.s3.sigv4.private-read]
+endpoint = "object-store"
+access_key_secret = "OBJECT_STORE_ACCESS_KEY"
+secret_key_secret = "OBJECT_STORE_SECRET_KEY"
+region = "us-east-1"
+service = "s3"
+authority = "minio:9000"
+methods = ["GET", "HEAD"]
+canonical_uri_prefixes = ["/results/exports/"]
+query = {}
+header_names = []
+
+[plugins.grants.s3.sigv4.results-list]
+endpoint = "object-store"
+access_key_secret = "OBJECT_STORE_ACCESS_KEY"
+secret_key_secret = "OBJECT_STORE_SECRET_KEY"
+region = "us-east-1"
+service = "s3"
+authority = "minio:9000"
+methods = ["GET"]
+canonical_uri_prefixes = ["/results/"]
+header_names = []
+
+[plugins.grants.s3.sigv4.results-list.query.list-type]
+required = true
+exact_values = ["2"]
+
+[plugins.grants.s3.sigv4.results-list.query.max-keys]
+required = true
+decimal_max = 1000
+
+[plugins.grants.s3.sigv4.results-list.query.prefix]
+required = true
+encoded_prefixes = ["exports%2F"]
+
+[plugins.grants.s3.sigv4.results-list.query.continuation-token]
+required = false
+opaque_max_encoded_bytes = 6144
 ```
+
+The secret names must also be present in the scenario environment allowlist.
+The scenario drives pagination explicitly and composes list, metadata, and
+exact-byte reads:
 
 ```lua
-return {
-  title = "Read an object from MinIO",
-  priority = "P1",
-  policy = { capabilities = { "wasm.s3" } },
+local s3 = require("wasm.s3")
+local page, list_error = s3["list-objects"]({
+  bucket = "results",
+  prefix = "exports/",
+  ["max-keys"] = 100,
+  ["continuation-token"] = nil,
+  auth = { tag = "sigv4", value = "results-list" },
+})
+expect(page ~= nil, list_error and list_error.message)
 
-  run = function()
-    local s3 = require("wasm.s3")
-    local bytes, download_error = s3["get-object"]({
-      endpoint = "object-store",
-      bucket = "results",
-      key = "run/output.parquet",
-      ["max-bytes"] = 4 * 1024 * 1024,
-    })
+local key = page.objects[1].key
+local metadata, head_error = s3["head-object"]({
+  bucket = "results",
+  key = key,
+  auth = { tag = "sigv4", value = "private-read" },
+})
+expect(metadata ~= nil, head_error and head_error.message)
 
-    expect(download_error == nil,
-      download_error and download_error.message)
-    expect(bytes ~= nil)
-  end,
-}
+local bytes, get_error = s3["get-object"]({
+  bucket = "results",
+  key = key,
+  auth = { tag = "sigv4", value = "private-read" },
+  ["max-bytes"] = 4 * 1024 * 1024,
+})
+expect(bytes ~= nil, get_error and get_error.message)
 ```
 
-The Lua `max-bytes` argument limits the decoded object body; the network
-grant's `max_bytes` limits aggregate request and response bytes on the wire.
-Before I/O, S3 asks the host to reserve the body ceiling plus exactly 64 KiB of
-possible response framing. The grant must therefore exceed the Lua ceiling by
-at least 65,536 bytes—65,535 bytes is refused—and request bytes need separate
-headroom. The example uses another 12 KiB for an 8 KiB presigned query, a
-percent-expanded key, endpoint, and HTTP framing: 4 MiB + 64 KiB + 12 KiB =
-4,172 KiB.
+Each listed object returns a string key, unsigned size, exact optional ETag,
+and unnormalized optional Last-Modified text. A truncated page returns one
+opaque `next-continuation-token`; the plugin never follows it automatically.
+Host API 1.2 validates and signs that token only under the grant's explicit
+bounded query rule, before I/O, without logging it.
 
-A reservation that does not fit is an uncatchable
-`PLUGIN_RESOURCE_LIMIT`/`plugin_infrastructure` failure. A response body that
-exceeds the plugin's Lua ceiling instead returns `nil, {class = "limit", ...}`
-with no partial bytes. That typed result is catchable by design, so scenarios
-must assert the error return as the sample does rather than relying on
-`pcall`. The maximum object body is 16 MiB. The logical endpoint is also the
-HTTP `Host`, so a presigned query must target that in-environment name.
+GET reserves its body ceiling plus exactly 64 KiB of response framing; LIST
+reserves 4 MiB plus 64 KiB. A reservation outside the network grant is an
+uncatchable `PLUGIN_RESOURCE_LIMIT`/`plugin_infrastructure` failure. A body
+over the plugin's own ceiling returns `nil, {class = "limit", ...}` with no
+partial bytes. HEAD returns optional size, ETag, and exact Last-Modified text
+without reading a body. The plugin exposes no write, delete, bucket-management,
+range, redirect, retry, or fallback operation.
 
-[View the immutable S3 0.1.0 release.](https://github.com/sigil-plugins/s3/releases/tag/v0.1.0)
+[View the immutable S3 0.3.0-rc.1 prerelease.](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0-rc.1)
 
-## Parquet 0.1.0
+## Parquet 0.1.1
 
 Parquet accepts a complete file as a binary Lua string, reports flat leaf
-metadata, and reads one typed scalar cell by column path and zero-based row
-index. It has no filesystem or network capability. The intended object-store
-flow composes it with S3 in the scenario, without making either plugin depend on
-the other:
+metadata, and reads one typed scalar cell, a bounded column window, or a
+projected row window. It has no filesystem or network capability. The intended
+object-store flow composes it with S3 in the scenario, without making either
+plugin depend on the other:
 
 ```sh
-sigil plugin add s3@0.1.0
-sigil plugin add parquet@0.1.0
+sigil plugin add s3@0.3.0-rc.1
+sigil plugin add parquet@0.1.1
 ```
 
 Use the S3 endpoint grant from the preceding section, then pass the downloaded
@@ -212,7 +276,7 @@ bytes directly to Parquet:
 
 ```lua
 return {
-  title = "Read one value from a Parquet object",
+  title = "Read projected rows from a Parquet object",
   priority = "P1",
   policy = { capabilities = { "wasm.s3", "wasm.parquet" } },
 
@@ -221,31 +285,42 @@ return {
     local parquet = require("wasm.parquet")
 
     local bytes, download_error = s3["get-object"]({
-      endpoint = "object-store",
       bucket = "results",
-      key = "run/output.parquet",
+      key = "exports/run/output.parquet",
+      auth = { tag = "sigv4", value = "private-read" },
       ["max-bytes"] = 4 * 1024 * 1024,
     })
-    expect(download_error == nil,
-      download_error and download_error.message)
+    expect(bytes ~= nil, download_error and download_error.message)
 
-    local cell, read_error = parquet["read-cell"](bytes, {
-      column = "total",
-      row = 1,
+    local names, column_error = parquet["read-column"](bytes, {
+      column = "last_name",
+      offset = 0,
+      limit = 3,
     })
-    expect(read_error == nil, read_error and read_error.message)
-    expect(cell.tag == "floating")
-    expect(cell.value == 27.75)
+    expect(names ~= nil, column_error and column_error.message)
+
+    local batch, rows_error = parquet["read-rows"](bytes, {
+      columns = { "last_name", "event_epoch_s", "amount" },
+      offset = 0,
+      limit = 3,
+    })
+    expect(batch ~= nil, rows_error and rows_error.message)
+    expect(batch.rows[1].cells[3].tag == "decimal")
   end,
 }
 ```
 
-Version 0.1 supports required or optional non-repeated scalar columns, plain or
-dictionary encoding, and uncompressed or Snappy pages. Nested or repeated
-columns, INT96, nanosecond temporal values, external column chunks, and other
-compression codecs fail explicitly. Input is capped at 16 MiB.
+Rows are positional in the exact order of `batch.columns`. Duplicate, unknown,
+nested, repeated, or unsupported projected columns fail before page decode.
+Bounds return `limit`, never a shorter successful result. NULL remains tagged,
+decimal keeps exact precision, scale, and unscaled bytes, and timestamp cells
+retain their raw integer plus unit; the reader never normalizes the value a
+scenario is trying to assert. Required or optional non-repeated scalar columns,
+plain or dictionary encoding, and uncompressed or Snappy pages are supported.
+INT96, nanosecond temporal values, external column chunks, and other compression
+codecs fail explicitly. Input is capped at 16 MiB.
 
-[View the immutable Parquet 0.1.0 release.](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.0)
+[View the immutable Parquet 0.1.1 release.](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.1)
 
 :::note[Direct runs require an explicit named service]
 Deployed PR and baseline lanes resolve S3's reviewed route normally. For a box

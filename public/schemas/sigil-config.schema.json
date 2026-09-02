@@ -1603,6 +1603,15 @@
           ],
           "format": "uint64",
           "minimum": 0
+        },
+        "opaque_max_encoded_bytes": {
+          "description": "Maximum encoded ASCII bytes for one optional opaque value. This rule\nis available only to plugins on host API 1.2 or newer.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
         }
       },
       "additionalProperties": false,
