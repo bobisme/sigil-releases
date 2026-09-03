@@ -9,7 +9,7 @@ Sigil is distributed through public release artifacts. The hosted installer is a
 
 | Platform | Status | Notes |
 |---|---|---|
-| macOS | Supported | Apple Silicon and Intel builds are published when available. |
+| macOS | Supported | Apple Silicon builds are published. Intel macOS is not built. |
 | Linux | Supported | x86_64 builds are published when available. |
 | Windows | Not documented yet | Use WSL2 for now, or email [info@runsigil.com](mailto:info@runsigil.com) with your target workflow. |
 

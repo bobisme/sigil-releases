@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [0.33.2] — 2026-09-03 — Typed External Data
+
+The typed-data plugin stack is now stable after repeated acceptance against an
+externally orchestrated CAPI service graph on Apple Silicon. Sigil supplies the
+routing, authorization, and bounded-pagination contracts without deploying the
+services itself.
+
+- **The accepted typed-data set is stable and reproducibly lockable.** [`mysql@0.2.1`](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.1) provides stateful typed SQL and complete MySQL 8 authentication, [`parquet@0.1.1`](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.1) provides bounded typed column and projected-row reads, and [`s3@0.3.0`](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0) provides prefix-confined private GET/HEAD plus caller-driven ListObjectsV2 pagination.
+- **Plugin routes preserve orchestrator-native endpoint names and schemes.** Grant targets may use exact dotted keys such as `singlestore-pipelines.sql:3306`; direct `mysql://` routes have the same plugin-only semantics through `--endpoint` and `--endpoints-from`, with no fallback to a base service.
+- **Plugin secrets are lazy and still fail closed.** Unused grants no longer block unrelated scenarios. A selected missing secret cannot be caught into a passing result; trusted human output names the required `--env` entry while JSON, eval feedback, and ledger evidence omit the name and value.
+- **The full stack is field-accepted.** The CAPI operator ran all five profiles four times through the literal rig-owned composition, retaining 8 scenarios / 299 assertions on distribution and 2 / 20 on compute, both expected REDs, byte-exact private object reads, one persistent typed SQL session, and CAPI-736 RED at the known-bad ref and GREEN at the fix.
+- **Stable artifacts target Apple Silicon macOS and x64 Linux only.** No Intel macOS artifact is built. [Install Sigil 0.33.2](https://github.com/bobisme/sigil-releases/releases/tag/v0.33.2).
+
 ## [0.33.2-rc.2] — 2026-09-02 — External Data Remediation Candidate
 
 This candidate carries the four follow-ups from the first real CAPI migration

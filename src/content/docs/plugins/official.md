@@ -24,8 +24,8 @@ reproducibility lock, and generates the matching LuaLS stub.
 | Plugin | Release | What it does | Requested host capabilities |
 |---|---:|---|---|
 | [`codec`](#codec-112) | `1.1.2` | Reference plugin that echoes a `u32` | None |
-| [`mysql`](#mysql-021-rc1) | `0.2.1-rc.1` | Stateful typed SQL for SingleStore 5.7 and complete MySQL 8 authentication | Network, named secrets, and entropy |
-| [`s3`](#s3-030-rc1) | `0.3.0-rc.1` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
+| [`mysql`](#mysql-021) | `0.2.1` | Stateful typed SQL for SingleStore 5.7 and complete MySQL 8 authentication | Network, named secrets, and entropy |
+| [`s3`](#s3-030) | `0.3.0` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
 | [`parquet`](#parquet-011) | `0.1.1` | Parquet metadata plus typed cell, column, and projected-row reads | None |
 
 :::note[Declare plugin capabilities in committed scenarios]
@@ -61,9 +61,9 @@ return {
 
 [View the immutable Codec 1.1.2 release.](https://github.com/sigil-plugins/codec/releases/tag/v1.1.2)
 
-## MySQL 0.2.1-rc.1
+## MySQL 0.2.1
 
-This MySQL prerelease is a stateful, bounded Classic Protocol driver for
+MySQL is a stateful, bounded Classic Protocol driver for
 SingleStore's MySQL 5.7 wire dialect and stock MySQL 8. It completes cold and
 warm `caching_sha2_password`, server auth-switch handling, and
 `mysql_native_password`; a wrong password is a typed authentication failure
@@ -73,7 +73,7 @@ entropy, cancellation, and teardown; the component sees only a logical
 endpoint and the names of specifically granted secrets.
 
 ```sh
-sigil plugin add mysql@0.2.1-rc.1
+sigil plugin add mysql@0.2.1
 ```
 
 Expose the credential names to scenarios, grant those names to this plugin,
@@ -86,6 +86,7 @@ MYSQL_PASSWORD = { from = "MYSQL_PASSWORD" }
 
 [plugins.grants.mysql]
 secrets = ["MYSQL_USER", "MYSQL_PASSWORD"]
+entropy = true
 
 [plugins.grants.mysql.network.database]
 target = "mysql:3306"
@@ -146,19 +147,19 @@ The driver never retries, reconnects, replays, or opens a replacement session
 after an ambiguous failure. It does not support prepared statements, the
 binary protocol, multi-statements or multi-results, or `LOCAL INFILE`.
 
-[View the immutable MySQL 0.2.1-rc.1 prerelease.](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.1-rc.1)
+[View the immutable MySQL 0.2.1 release.](https://github.com/sigil-plugins/mysql/releases/tag/v0.2.1)
 
-## S3 0.3.0-rc.1
+## S3 0.3.0
 
 S3 performs bounded, read-only path-style GET, HEAD, and one ListObjectsV2
 page against S3-compatible stores such as MinIO. Anonymous and presigned
 requests remain available; private requests name an opaque SigV4 grant so the
 component never receives credentials, signing time, authority, or signature
-material. Use this candidate with Sigil 0.33.2-rc.2 or a compatible newer
+material. Use this release with Sigil 0.33.2 or a compatible newer
 release.
 
 ```sh
-sigil plugin add s3@0.3.0-rc.1
+sigil plugin add s3@0.3.0
 ```
 
 The operator owns the socket route, secrets, signed Host, methods, canonical
@@ -261,7 +262,7 @@ partial bytes. HEAD returns optional size, ETag, and exact Last-Modified text
 without reading a body. The plugin exposes no write, delete, bucket-management,
 range, redirect, retry, or fallback operation.
 
-[View the immutable S3 0.3.0-rc.1 prerelease.](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0-rc.1)
+[View the immutable S3 0.3.0 release.](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0)
 
 ## Parquet 0.1.1
 
@@ -272,7 +273,7 @@ object-store flow composes it with S3 in the scenario, without making either
 plugin depend on the other:
 
 ```sh
-sigil plugin add s3@0.3.0-rc.1
+sigil plugin add s3@0.3.0
 sigil plugin add parquet@0.1.1
 ```
 
