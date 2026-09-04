@@ -213,8 +213,8 @@ return {
     expect(result.plan == "Pro")
     expect(result.total_cents == 9900)
 
-    -- 3. Direct browser assertions — getters return strings, actions
-    --    return nil; sessions auto-isolate per scenario ID.
+    -- 3. Direct browser assertions — text is a string, visible a boolean;
+    --    actions return nil; sessions auto-isolate per scenario ID.
     sigil.browser.open("/account/billing")
     sigil.browser.wait({ text = "Pro" })
     expect(sigil.browser.text("[data-testid=plan-badge]") == "Pro")
@@ -286,7 +286,7 @@ const callouts: Record<number, { id: string; label: string; api: string; note: s
   12: { id: 'B', label: 'env access',        api: 'sigil.env()',     note: 'Typed access to an evaluator-scoped secret vault. Values are read from the locked environment, never inlined into the scenario source, and never echoed into feedback or the ledger.' },
   24: { id: 'D', label: 'agent instruction', api: 'sigil.intent',    note: 'Plain-English objective in the `---` block. The LLM drives the declared capabilities via tool-use; typed capture fields become the completion schema, so the agent must return structured values.' },
   36: { id: 'C', label: 'power assertions',  api: 'expect',          note: 'Comparisons inside expect are rewritten to capture both sides. On failure, the renderer prints an Ariadne code frame with the value each sub-expression resolved to — this line is the one that fails in §06.' },
-  40: { id: 'E', label: 'browser automation',api: 'sigil.browser',   note: 'Getters (text, url, visible) return strings; actions (open, click, fill, wait) return nil. Sessions auto-isolate per scenario ID — no cookie bleed between parallel runs.' },
+  40: { id: 'E', label: 'browser automation',api: 'sigil.browser',   note: 'Text and URL getters return strings; visible returns a boolean. Actions (open, click, fill, wait) return nil. Sessions auto-isolate per scenario ID — no cookie bleed between parallel runs.' },
   46: { id: 'F', label: 'http calls',        api: 'sigil.get',       note: 'Typed HTTP against the deployed service. Metadata, headers, and JSON bodies are structured, while response.body preserves exact wire bytes — including NUL and non-UTF-8 — for binary plugins and assertions.' },
   54: { id: 'G', label: 'property testing',  api: 'invariant',       note: 'Generate N cases from the declared generators, run the check against each, and shrink counter-examples on failure. A claim about the service, not a sequence of steps.' },
   67: { id: 'H', label: 'llm rubric',        api: 'sigil.judge',     note: 'Plain-English rubric in the preceding `---` block becomes the grading criteria for a Tier-3 judge. The score and rubric digest land in the ledger; the prompt never leaves the evaluator.' },

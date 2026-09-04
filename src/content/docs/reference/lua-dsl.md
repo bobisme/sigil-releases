@@ -132,7 +132,19 @@ expect(res.status == 200, "login should succeed for a seeded user")
 
 ## `sigil.log(message)` and `sigil.attach(name, value)`
 
-`sigil.log` records a scenario-local log line; `sigil.attach` records a named value (any JSON-representable Lua value) as evidence. Under `sigil run` and `sigil scenario run` both surface in the report: `--json` carries `logs: ["…"]` (call order) and `attachments: { name = value }` (last write wins) on every scenario entry, and the human output prints `log:` lines to stderr as they happen and `attach:` lines after the scenario. Neither reaches `sigil eval`'s lossy feedback or the PR comment.
+`sigil.log` records a scenario-local byte string; `sigil.attach` records a named
+value (any JSON-representable Lua value) as evidence. Under `sigil run` and
+`sigil scenario run`, JSON reports carry `logs: [...]` in call order and
+`attachments: { name = value }` with last write wins on every scenario entry.
+Neither reaches `sigil eval`'s lossy feedback or the PR comment.
+
+Valid UTF-8 logs remain JSON strings. Invalid UTF-8 becomes
+`{encoding: "base64", byte_count, blake3, data_base64}`; the base64 contains
+the complete input, and the digest uses the `blake3:<hex>` form. A cumulative
+1 MiB per-scenario byte budget fails the exceeding call explicitly without
+recording or truncating that entry. Human `sigil run` streams `log:` lines to
+stderr as they happen, using the same binary object and escaping control
+characters in UTF-8 text. Human reports print `attach:` lines after the scenario.
 
 ```lua
 sigil.log("seeded 3 users")
@@ -220,7 +232,9 @@ Returns `{ completed, summary, steps, ... }` plus captured fields.
 
 **Requires capability**: `browser`
 
-Shells out to `agent-browser`. Automatic per-scenario session isolation; base URL is prepended to relative paths.
+Uses Sigil's in-process Chrome-for-Testing runner. Sessions isolate per
+scenario; the base URL is prepended to relative paths. See
+[browser configuration](/reference/configuration/#browser).
 
 | Method | Purpose |
 |--------|---------|
@@ -251,7 +265,8 @@ expect(echoed == 42)
 The scenario's strict policy declares the exact `wasm.<name>` capability, and
 the project must contain a matching `[plugins.require]` entry plus valid
 `.sigil/sigil.plugins.lock`. Installing bytes in the user cache is not enough.
-Use `sigil plugin add NAME` to adopt the dependency.
+Use `sigil plugin install NAME[@VERSION]` to acquire the verified bytes, then
+`sigil plugin add NAME[@VERSION]` to adopt the dependency.
 
 Plugin functions and WIT records, tuples, lists, options, results, flags,
 enums, variants, constructors, resources, and resource methods map to bounded

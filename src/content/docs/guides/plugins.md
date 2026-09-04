@@ -14,15 +14,17 @@ capability requirements, and complete usage examples.
 From a new or existing project directory:
 
 ```sh
+sigil plugin install codec
 sigil plugin add codec
 git add .sigil/sigil.toml .sigil/sigil.plugins.lock .sigil/types/wasm
 ```
 
-`plugin add` resolves the highest stable official Codec release, installs it if
-necessary, writes an **exact** requirement, creates the reproducibility lock,
-and generates the matching LuaLS stub. If `.sigil/sigil.toml` does not exist,
-the first official add creates a minimal schema-linked, non-deploying project
-config. Commit all three artifacts.
+`plugin install` resolves and verifies the highest stable official Codec release
+into the per-user cache. `plugin add` then writes an **exact** requirement,
+creates the reproducibility lock, and generates the matching LuaLS stub. It does
+not acquire an uncached package. If `.sigil/sigil.toml` does not exist, the
+first official add creates a minimal schema-linked, non-deploying project config.
+Commit all three artifacts.
 
 Then load it from a scenario:
 
@@ -135,12 +137,14 @@ protobuf = { version = "=1.2.4", source = "github:acme/sigil-protobuf" }
 ```
 
 ```sh
+sigil plugin install github:acme/sigil-protobuf@1.2.4
 sigil plugin add github:acme/sigil-protobuf@1.2.4
 ```
 
 Local archives can be packed, validated, inspected, and cached for development,
-but `local:path` bytes cannot become a project dependency or execute in a
-scenario.
+but `local:path` bytes cannot become a project dependency. For explicitly
+authorized local execution, use [`sigil plugin test`](/reference/cli/#package-author-commands)
+in disposable state.
 
 ## Host capabilities and grants
 
@@ -173,24 +177,29 @@ baseline lanes. When another tool already owns the box, `sigil run` can instead
 resolve a locked plugin route from an explicit named service:
 
 ```sh
-sigil run scenarios/ --endpoint minio=http://127.0.0.1:49172
+sigil run scenarios/ --plugin-route minio:9000=http://127.0.0.1:49172
 
 # Protocol-specific named routes work on argv too:
 sigil run scenarios/ --endpoint s2sql=mysql://127.0.0.1:3306
 
-# Or consume the service map produced by an orchestrator:
+# Enrich a legacy service map with the grant's logical port:
 rig services --format json \
+  | jq '.minio = {url: .minio, logical_port: 9000}' \
   | sigil run scenarios/ --endpoints-from -
 ```
 
-For a reviewed grant target of `minio:9000`, the service must be named
-`minio`; the externally published URL port (`49172` above) replaces logical
-port `9000`. Dot-separated orchestrator endpoint keys are exact too: a target
+For a reviewed grant target of `minio:9000`, bind the complete target explicitly
+when the published port differs. A structured service-map entry such as
+`{"minio":{"url":"http://127.0.0.1:49172","logical_port":9000}}` is equivalent
+and also retains the named HTTP service. Legacy URL strings and named
+`--endpoint` flags work for plugins only when the effective URL port equals
+the logical port. Dot-separated orchestrator endpoint keys are exact too: a target
 of `singlestore-pipelines.sql:3306` resolves only the
 `singlestore-pipelines.sql` map entry and never falls back to
 `singlestore-pipelines`. A bare `--endpoint http://127.0.0.1:49172` is only the
 primary HTTP base and never grants a plugin route. `sigil scenario run` uses
-matching named `[eval] services` from project configuration in the same way.
+full-target [`[eval.plugin_routes]`](/reference/configuration/#evalplugin_routes)
+from project configuration, or named `[eval] services` with matching ports.
 
 A complete external service map—and named `--endpoint` flags—may also contain
 bare protocol routes such as `mysql://127.0.0.1:3306`. These require an
@@ -201,9 +210,11 @@ not enter `sigil.service()` or the HTTP origin-pin set. This lets the documented
 `rig services --format json | sigil run ... --endpoints-from -` composition
 consume the whole map without filtering out SQL or gRPC services first.
 
-All routes are resolved before reset hooks or scenarios execute. Missing or
-unresolvable services, ambiguous DNS results, and incompatible TLS modes fail
-closed. Use `http://` for a grant with `tls = "disabled"` and `https://` for
+All supplied routes retain eager URL, TLS, DNS, and ambiguity validation before
+reset hooks or scenarios execute. An absent route does not prevent a plugin
+from loading: the first operation using that endpoint fails closed as sticky
+`PLUGIN_NETWORK_DENIED`, which cannot be caught into a passing scenario.
+Use `http://` for a grant with `tls = "disabled"` and `https://` for
 `tls = "direct"`; URL-derived direct routes do not support `tls = "upgrade"`.
 For protocol-specific route schemes, the imported URL supplies the published
 host and port while the reviewed plugin grant remains authoritative for TLS.
@@ -273,7 +284,7 @@ plugin installation failed. Upgrade before investigating further.
 
 | Message | Fix |
 |---|---|
-| Plugin is not declared for this project | Run `sigil plugin add NAME`. |
+| Plugin is not declared for this project | Run `sigil plugin install NAME[@VERSION]`, then `sigil plugin add NAME[@VERSION]`. |
 | A selected plugin secret is unavailable | Add the exact `--env NAME` printed by trusted human direct-run output; do not put its value on argv. |
 | Lock is absent or stale | Review the requirement, then run `sigil plugin lock`. |
 | Exact locked package is missing in CI | Run `sigil plugin sync` before lint/eval. |

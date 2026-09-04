@@ -188,7 +188,8 @@ The LLM drives scenario tools (http, browser, exec) via tool-use to accomplish t
 
 ## `sigil.browser.*` — first-class browser
 
-Shells out to `agent-browser` with automatic session isolation per scenario ID.
+Uses Sigil's in-process Chrome-for-Testing runner with automatic session
+isolation per scenario ID. See [browser configuration](/reference/configuration/#browser).
 
 ```lua
 sigil.browser.open("/login")
@@ -199,7 +200,8 @@ sigil.browser.wait({ text = "Dashboard" })
 expect(sigil.browser.url():match("/dashboard"))
 ```
 
-Getters return strings; actions return nil or error. Key methods: `open`, `click`, `fill`, `wait`, `text`, `html`, `title`, `url`, `screenshot`, `eval`, `cookies`, `snapshot`, `visible`.
+Text, HTML, title, and URL getters return strings; `visible` returns a boolean.
+Actions return nil or error. Key methods: `open`, `click`, `fill`, `wait`, `text`, `html`, `title`, `url`, `screenshot`, `eval`, `cookies`, `snapshot`, `visible`.
 
 ## Capabilities
 
@@ -220,6 +222,14 @@ The `policy.capabilities` field is static metadata. `sigil scenario lint` reject
 Under `sigil run` (the smoke runner) the effective set is **declared ∪ inferred**: a scenario with no `policy` gets the capabilities its literal call sites (`sigil.exec(...)`, `sigil.get(...)`, `require("wasm.codec")`, including an inline-indexed `sigil.exec("x").status`) imply, and a declaration is never removed. Inference only sees call sites in the scenario file itself — a capability reached through a `require('lib.x')` helper, `sigil["exec"]`, a dynamic plugin name, or a `local f = sigil.exec` alias must be declared. `sigil scenario run` and `sigil eval` use the declaration exactly. A plugin still requires the current project's `[plugins.require]` and exact lock in every execution mode; smoke inference is capability convenience, not dependency resolution.
 
 Declaring a capability is necessary but not always sufficient: an operator can deny one outright with `[eval] denied_capabilities` (or `sigil run --deny-capability`). A scenario that declares or calls a denied capability fails lint (E007) before it executes, and the runtime installs a denying stub regardless. `exec` is the usual target — `sigil.exec` runs on the host running sigil, not inside the deployed container. See [Configuration → `[eval]`](/reference/configuration/#eval).
+
+Project lint also follows bounded literal `require("lib.*")` graphs and checks
+nested literal `wasm.<name>` loads against each calling scenario's policy
+(`E003`, `E005`, `E007`, and `W009`). Helpers cannot grant capabilities to
+their callers. Missing, malformed, cyclic, or over-limit helper graphs fail
+with `E012`; dynamic module names remain runtime-only. Standalone
+`sigil scenario lint-path` does not infer a helper root or perform this
+transitive check.
 
 ## Sandbox rules
 

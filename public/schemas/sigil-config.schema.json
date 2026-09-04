@@ -448,6 +448,14 @@
             "type": "string"
           },
           "default": {}
+        },
+        "plugin_routes": {
+          "description": "Explicit lane-less plugin route bindings (bn-3u8r), keyed by the full\nreviewed logical target: `\"minio:9000\" =\n\"http://127.0.0.1:49172\"`.\n\nUnlike [`Self::services`], these entries are plugin-only authority:\nthey never become `sigil.service()` handles, HTTP origin pins, reset\ntargets, or deployed-lane routes. Use this map when a configured\n`sigil scenario run` reaches a published port different from the\nplugin grant's logical port. Keys and URLs are validated fail-closed at\nconfig load.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
         }
       },
       "additionalProperties": false

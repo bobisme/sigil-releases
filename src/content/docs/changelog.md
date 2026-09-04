@@ -5,6 +5,27 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.34.0] — 2026-09-04 — Plugin Adoption
+
+Sigil makes locked plugins easier to inspect and compose against externally
+managed services, while preserving the boundaries that make their results
+trustworthy. The accepted 0.34.0-rc.1 code is promoted with only version and
+changelog changes.
+
+- **Published ports bind to the full plugin target.** `--plugin-route SERVICE:LOGICAL_PORT=URL`, structured `--endpoints-from` entries, and `[eval.plugin_routes]` keep logical service identity separate from the port an orchestrator publishes. Legacy named routes remain valid when the ports match.
+- **Unused plugins and absent routes stop blocking unrelated work.** Plugin-free selections do not read the project lock or store; plugin-using selections freeze only their effective exact dependencies. An absent endpoint fails on first use as sticky `PLUGIN_NETWORK_DENIED`, while supplied routes retain eager validation and selected incompatibility still fails closed.
+- **Binary logs preserve the bytes you are debugging.** `sigil.log` keeps UTF-8 as JSON strings and represents other byte strings with reversible base64, a byte count, and a BLAKE3 digest. A cumulative 1 MiB per-scenario budget fails explicitly rather than truncating; logs remain outside agent-visible eval feedback.
+- **Plugin authoring has explicit inspection and test paths.** `sigil plugin inspect NAME[@VERSION]` verifies and reflects an installed package offline. `sigil plugin test --path ... --scenario ... --allow-local` exercises an explicitly authorized local candidate through the production host in disposable state, without project locks, ledger events, trust changes, or ALLOW decisions.
+- **Shared helpers cannot hide plugin capability use from project lint.** Bounded literal `require("lib.*")` graphs attribute nested plugin loads to the calling scenario's policy. Broken or cyclic graphs fail closed; helper code cannot grant authority.
+- **Minor prereleases retain an explicit last-stable compatibility identity.** The 0.34.0 candidate accepts plugins compatible with 0.33.2 without satisfying a requirement for final 0.34.0. Malformed or stale compatibility metadata fails closed.
+- **The official plugin set preserves temporal meaning.** Codec `1.1.2`, MySQL `0.2.1`, S3 `0.3.0`, and Parquet `0.2.0` form the current set. Parquet now preserves `isAdjustedToUTC` as `is-adjusted-to-utc` in structured metadata and time/timestamp cells, including an explicit `false`.
+- **Acceptance retains the expected failures.** Authority-bearing CAPI acceptance passed all five profiles across 10 scenarios and 319 assertions, with identical expected verdicts and both intentional RED assertions preserved. Browser parity regression coverage and its live CI gate were also hardened.
+
+See [plugin route setup](/guides/plugins/#direct-runs-and-named-network-services),
+[plugin author commands](/reference/cli/#package-author-commands),
+[binary logging](/reference/lua-dsl/#sigillogmessage-and-sigilattachname-value),
+and [Parquet 0.2.0](/plugins/official/#parquet-020).
+
 ## [0.33.2] — 2026-09-03 — Typed External Data
 
 The typed-data plugin stack is now stable after repeated acceptance against an

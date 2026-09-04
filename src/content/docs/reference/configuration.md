@@ -129,7 +129,9 @@ entropy = ["github:sigil-plugins/*"]
 log     = ["github:sigil-plugins/*"]
 ```
 
-Use `sigil plugin add NAME` for the usual exact dependency workflow. If the
+Use `sigil plugin install NAME[@VERSION]` followed by `sigil plugin add
+NAME[@VERSION]` for the usual exact dependency workflow. `add` requires the
+package to be present in the per-user cache and does not acquire it. If the
 directory has no `.sigil/sigil.toml`, the first official add creates a minimal
 schema-linked config. It updates `[plugins.require]`,
 `.sigil/sigil.plugins.lock`, and the managed
@@ -151,6 +153,14 @@ protobuf = { version = "=1.2.4", source = "github:acme/sigil-protobuf" }
 `token_env` names an optional environment variable used only by explicit
 plugin-manager network commands. Its value is never stored, logged, forwarded
 to redirected asset hosts, or exposed to a component.
+
+Only the exact plugins selected by scenario capabilities must be loadable by
+the running Sigil host. Plugin-free selections do not read the lock or store.
+When a plugin is selected, the complete lock must still canonically cover
+`[plugins.require]`; selected incompatibility fails closed. Reports, replay
+inputs, and `plugin_set_hash` contain only the selected identities. Full-project
+`plugin lock`, `plugin sync`, and default `generate-types` still require support
+for every locked dependency.
 
 ### `[plugins.grants.<name>]`
 
@@ -327,9 +337,25 @@ denied_capabilities   = ["exec"]                   # capabilities no scenario ma
 
 **Endpoint pinning** confines scenario HTTP to the deployed service's origin by default — a holdout or contract scenario cannot exfiltrate over an arbitrary `base_url`. `allowed_origins` adds extra origins that `sigil eval` / `sigil scenario run` / `sigil generate` may reach (typically sidecars like a metrics endpoint on another port). Entries must be bare origins (`scheme://host[:port]`, at most a trailing `/`); a malformed entry is a hard config error at load (fail-closed). The deployed service's own origin is always allowed and need not be listed. (`sigil run`, which has no project config, pins to `--endpoint` and ignores this list; use its `--allow-origin` / `--allow-cross-origin` flags instead.)
 
-**`services`** declares named services reachable from Lua as `sigil.service("name")` — a second twin, say — with each origin validated like `allowed_origins` and folded into the pin set. The same map is what `[scenario.reset]` hooks with `service = "…"` target. During direct `sigil scenario run`, a locked network plugin may also resolve a logical target such as `minio:9000` from the exact service name `minio`, using the service URL's published port; the primary endpoint is never inferred as plugin authority. The `sigil run` equivalents are `--endpoint name=url` and `--endpoints-from <json>`. See [Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
+**`services`** declares named services reachable from Lua as `sigil.service("name")` — a second twin, say — with each origin validated like `allowed_origins` and folded into the pin set. The same map is what `[scenario.reset]` hooks with `service = "…"` target. During direct `sigil scenario run`, a plugin target such as `minio:9000` may use the exact service name `minio` only when the URL's effective port is also `9000`. For a different published port, bind the full target with `[eval.plugin_routes]`. The primary endpoint never grants plugin authority. See [Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
 
 **`denied_capabilities`** is an operator-side denylist on top of the per-scenario `policy.capabilities` declaration. Nothing is denied by default; an unknown capability name is a hard config error. Enforcement is fail-closed at three layers: a scenario that declares or calls a denied capability fails lint (`E007`) before it executes, the runtime installs a denying stub for it regardless of what the scenario declared, and `sigil.intent` never exposes it as a tool. A blocked scenario reports `failure_class = "capability"`. The motivating case is `exec`: `sigil.exec` runs `sh -c` on the host running sigil, not inside the deployed container, so deny it wherever third-party or agent-authored scenarios run. The `sigil run` equivalent is the repeatable `--deny-capability <NAME>`.
+
+### `[eval.plugin_routes]`
+
+Bind a reviewed logical target to its externally published socket route for
+configured `sigil scenario run`:
+
+```toml
+[eval.plugin_routes]
+"minio:9000" = "http://127.0.0.1:49172"
+"singlestore-pipelines.sql:3306" = "mysql://127.0.0.1:33061"
+```
+
+These entries are plugin-only: they create no `sigil.service()` handles, HTTP
+origin pins, reset targets, or deployed-lane routes. Keys and URLs are validated
+at config load. In `sigil run`, use `--plugin-route SERVICE:LOGICAL_PORT=URL`
+or structured `--endpoints-from` entries with `url` and `logical_port`.
 
 ## `[holdout]`
 

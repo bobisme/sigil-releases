@@ -40,7 +40,7 @@ sigil ci owner/repo#42 --service <svc> [--comment] [--auto-merge] [--dry-run]
 ### `sigil run`
 
 ```
-sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL|NAME=URL>] [--endpoints-from <PATH>] [--env KEY[=VALUE]] [--lib-dir <DIR>] [--allow-origin <URL>] [--allow-cross-origin] [--deny-capability <NAME>] [--reset [NAME=]METHOD:/path] [--resets-from <PATH>] [--seed <64-hex|auto>] [--json]
+sigil run [PATHS...] [--filter <SUBSTR>] [--tag <T>] [--exclude-tag <T>] [--endpoint <URL|NAME=URL>] [--plugin-route <SERVICE:LOGICAL_PORT=URL>] [--endpoints-from <PATH>] [--env KEY[=VALUE]] [--lib-dir <DIR>] [--allow-origin <URL>] [--allow-cross-origin] [--deny-capability <NAME>] [--reset [NAME=]METHOD:/path] [--resets-from <PATH>] [--seed <64-hex|auto>] [--json]
 ```
 
 Minimal scenario runner — runs `.lua` files directly without requiring `.sigil/sigil.toml`, the eval pipeline, or a ledger. Each positional is a file or a directory (recursive walk for `*.lua`, `lib/` skipped). `--filter` is substring-matched against scenario file path and `title` (repeatable, OR'd). `--tag` / `--exclude-tag` use the same semantics as `sigil scenario run` (exclude always wins). `--endpoint` is optional — surfaces a clear error at first HTTP call if a scenario needs one. Exit codes: `0` all passed, `1` some failed, `2` zero scenarios matched (pytest convention).
@@ -48,7 +48,8 @@ Minimal scenario runner — runs `.lua` files directly without requiring `.sigil
 - `--env KEY[=VALUE]` (repeatable) — populate `sigil.env()`. `KEY=VALUE` sets a literal value (only the first `=` splits, so values may contain `=`); bare `KEY` passes the value through from sigil's own process environment, keeping secrets off the command line. Strict allowlist: only named keys are visible to the scenario; duplicates are last-wins. If a selected plugin operation needs a granted name that is absent, trusted human output names the exact `--env KEY` to add; JSON, eval feedback, and ledger evidence omit the name and value.
 - `--lib-dir <DIR>` — the directory `require('lib.<module>')` resolves inside, for every scenario in the run. Defaults to the **discovery anchor** joined with `lib`: a directory argument itself, or a file argument's parent — the same anchor the scenario id is derived from. Name it explicitly when staging a tree whose helpers do not sit there. Validated up front, so a missing directory aborts the invocation rather than surfacing as a require failure partway through the suite. When a helper is missing at run time, the error names the anchor it was resolved from and suggests this flag if it was not already given. See [Writing Scenarios](/guides/writing-scenarios/#where-requirelibx-resolves).
 - `--endpoint <NAME=URL>` — declare a named route, alongside the bare-URL form that sets the primary HTTP base URL. An HTTP(S) named route is reachable from Lua as `sigil.service("name")` and enters the HTTP origin pin set. A named non-HTTP route such as `--endpoint s2sql=mysql://127.0.0.1:3306` is available only to locked plugins: it never enters `sigil.service()`, the HTTP pin set, or reset targets, and the plugin grant still controls TLS. Repeatable and validated up front.
-- `--endpoints-from <PATH>` — load a flat service map (`-` reads stdin), so a tool that already knows the box can feed sigil directly: `rig services --format json | sigil run scenarios/ --endpoints-from -`. Entries use the same HTTP-versus-plugin-only split as named `--endpoint` flags. Bare non-HTTP entries require an explicitly written port; a written scheme default such as `ws://host:80`, `wss://host:443`, or `ftp://host:21` counts as explicit. The primary endpoint stays argv-only; a name declared in both inputs is an error. A bad file, JSON value, or route aborts before any scenario runs and names the source path, offending key, and cause. A grant target resolves the exact map key, including dots: `singlestore-pipelines.sql:3306` resolves only `singlestore-pipelines.sql`, never the base `singlestore-pipelines`. The published URL port replaces the logical port, while a bare primary endpoint is never inferred as plugin authority.
+- `--plugin-route <SERVICE:LOGICAL_PORT=URL>` — bind the full plugin grant target to a published port, for example `--plugin-route minio:9000=http://127.0.0.1:49172`. Repeatable; these bindings never create HTTP service handles, origin pins, or reset targets. Legacy named `--endpoint` routes work for plugins only when their effective URL port equals the grant's logical port.
+- `--endpoints-from <PATH>` — load a service map (`-` reads stdin). Values may be URL strings or structured entries such as `{"url":"http://127.0.0.1:49172","logical_port":9000}` under the key `minio`. Structured HTTP(S) entries retain named HTTP service behavior while also binding the full plugin target. Legacy strings require matching effective and logical ports for plugin use; enrich an orchestrator's map when it publishes different ports. Non-HTTP entries require an explicitly written port and remain plugin-only; a written scheme default such as `ws://host:80` counts. The primary endpoint stays argv-only; a name declared in both inputs is an error. Invalid entries abort before scenarios run with the source path, key, and cause. Dotted keys are exact: `singlestore-pipelines.sql:3306` never falls back to `singlestore-pipelines`.
 - `--allow-origin <URL>` (repeatable) — allowlist one specific extra origin on top of the declared set, keeping pinning enforced for everything else. Each value must be a bare `scheme://host[:port]`. Prefer this over `--allow-cross-origin` whenever the extra origins are known in advance.
 - `--allow-cross-origin` — disable endpoint pinning. By default every HTTP call and redirect is confined to the run's **declared origins** — the `--endpoint` origin (when a bare one is given), every named service origin, and every `--allow-origin` value; a cross-origin `base_url` is a runtime error. A run that declares only named services (no bare `--endpoint`) is pinned to exactly those service origins; only a run that declares no origins at all is unpinned. This flag restores the old unconfined behavior — only use it for trusted scenarios (see the security note in `--help`).
 - `--reset [NAME=]METHOD:/path` (repeatable) — send an HTTP request before **every** scenario: `METHOD:/path` targets the primary `--endpoint`, `NAME=METHOD:/path` targets a named service declared with `--endpoint name=url` / `--endpoints-from`. Any 2xx is success. A hook targeting the primary needs a bare `--endpoint`; a `NAME` nobody declared is an error listing the declared names. All of it is validated before the first scenario runs, with the same rules as `[scenario.reset]`.
@@ -59,6 +60,13 @@ Minimal scenario runner — runs `.lua` files directly without requiring `.sigil
 
 For PR evaluation, scoring, ledger writes, baseline comparison, and decision policy use `sigil eval` instead.
 
+Supplied plugin routes retain eager URL, TLS, DNS, and ambiguity checks.
+An absent route is deferred until an operation uses that endpoint; it then
+fails as sticky `PLUGIN_NETWORK_DENIED`, even if guest code catches the error.
+See [route configuration](/guides/plugins/#direct-runs-and-named-network-services).
+Log entries preserve arbitrary bytes; see the
+[log representation and budget](/reference/lua-dsl/#sigillogmessage-and-sigilattachname-value).
+
 ### `sigil scenario lint` / `lint-path`
 
 ```
@@ -68,13 +76,19 @@ sigil scenario lint-path <paths...> [--json]
 
 `lint` parses + static-checks every scenario in a configured project (capabilities, metadata, sandbox-safety rules). E009 requires a literal top-level `return { ... }`, because dynamically built metadata cannot be reviewed statically; the literal table may delegate its `run` field to a helper. `lint-path` lints arbitrary `.lua` files **without** a `.sigil/` project layout — the same rule set, with machine-readable findings under `--json` (`{file, code, severity, message, line, span}`). Exit `0` when clean, nonzero when any error-severity finding is present.
 
+Project `lint` additionally follows bounded literal `require("lib.*")` graphs
+and attributes nested plugin loads to the calling scenario's capability checks.
+Missing, malformed, cyclic, or over-limit graphs are `E012`. `lint-path` has no
+project helper root and does not perform that transitive check; dynamic module
+names remain runtime-only. See [capabilities](/guides/writing-scenarios/#capabilities).
+
 ### `sigil scenario run`
 
 ```
 sigil scenario run [SCENARIO_ID | --all] [--service <svc>] [--endpoint <URL>] [--seed <64-hex|auto>] [--format human|json] [--allow-cross-origin]
 ```
 
-Run scenarios from a configured project. `--seed` and `--format json` use the same seed/report contract as `sigil run` (one schema across both runners). Endpoint pinning applies here too, with the project's `[eval] allowed_origins` allowlist permitting known sidecar origins. Locked network plugins resolve direct routes only from matching named `[eval] services`, never from the primary `--endpoint`.
+Run scenarios from a configured project. `--seed` and `--format json` use the same seed/report contract as `sigil run` (one schema across both runners). Endpoint pinning applies here too, with the project's `[eval] allowed_origins` allowlist permitting known sidecar origins. Locked network plugins use full-target `[eval.plugin_routes]` bindings, or named `[eval] services` whose effective URL port matches the grant's logical port, never the primary `--endpoint`.
 
 ### `sigil scenario generate`
 
@@ -107,12 +121,14 @@ sigil plugin add github:OWNER/REPO@VERSION
 sigil plugin remove NAME
 ```
 
-`add` resolves and installs the requested release when necessary, creates a
+`add` requires the requested release to be present in the per-user store; run
+`sigil plugin install NAME[@VERSION]` first on a fresh machine. It creates a
 minimal schema-linked `.sigil/sigil.toml` when the directory is not yet a
 project, writes an exact formatting-preserving requirement, and transactionally
-refreshes the lock and managed `.sigil/types/wasm/` stubs. `remove` deletes that
-project requirement, lock entry, and managed stub while retaining cached package bytes.
-A failed transaction restores the original config bytes.
+refreshes the lock and managed `.sigil/types/wasm/` stubs. It never performs
+network acquisition itself. `remove` deletes that project requirement, lock
+entry, and managed stub while retaining cached package bytes. A failed
+transaction restores the original config bytes.
 
 ### `sigil plugin lock` / `sync`
 
@@ -143,6 +159,7 @@ sigil plugin list
 sigil plugin list-remote [NAME]
 sigil plugin info NAME[@VERSION]
 sigil plugin verify NAME[@VERSION]
+sigil plugin inspect NAME[@VERSION]
 sigil plugin use NAME@VERSION
 sigil plugin update [NAME]
 sigil plugin uninstall NAME@VERSION --force
@@ -153,6 +170,10 @@ sigil plugin uninstall NAME --all --force
 evidence. These commands operate on the per-user store and `current` authoring
 selection only; they do not make a plugin available to a scenario.
 
+`inspect NAME[@VERSION]` verifies the immutable installed payload and reflects
+its component offline without changing the authoring selection. An exact
+version lets you compare cached APIs without locating private store paths.
+
 ### Package author commands
 
 ```sh
@@ -160,11 +181,19 @@ sigil plugin validate ./plugin.toml
 sigil plugin inspect ./plugin.wasm
 sigil plugin pack ./plugin.toml --output-dir ./dist
 sigil plugin install --path ./dist/name-version.sigil-plugin.tar.zst
+sigil plugin test --path ./plugin.toml --scenario ./conformance/roundtrip.lua --config ./operator-plugin-test.toml --allow-local
 ```
 
 `pack` emits a deterministic canonical archive. `validate` and `inspect` do not
 grant execution authority. A locally installed archive can be inspected and
-cached but cannot become a project dependency or execute in a scenario.
+cached but cannot become a project dependency. `plugin test` is the explicit
+local authoring exception: it runs named visible scenarios through the
+production host in disposable state. `--allow-local` is required alongside
+`allow_third_party = true`, `local:path` in the install and requested capability
+allowlists, and effective grants in the supplied config. Only explicitly named
+`--env KEY[=VALUE]` values are exposed, and scenario-side `exec` is denied.
+The command creates no project locks, store selections, evaluations, ledger
+events, attestations, trust changes, or ALLOW decisions.
 
 ## Ledger
 

@@ -15,18 +15,19 @@ Run this command for the live inventory:
 sigil plugin list-remote
 ```
 
-`sigil plugin add` is the normal way to adopt one. For the first official
-plugin in a new directory it creates a minimal non-deploying project config;
-otherwise it preserves the existing `.sigil/sigil.toml`. It downloads the
-package when necessary, declares the exact dependency, writes the
-reproducibility lock, and generates the matching LuaLS stub.
+Install a release into the per-user cache, then add that installed release to
+the project. For the first official plugin in a new directory, `add` creates a
+minimal non-deploying project config; otherwise it preserves the existing
+`.sigil/sigil.toml`. `add` does not acquire uncached packages: it declares the
+exact dependency, writes the reproducibility lock, and generates the matching
+LuaLS stub.
 
 | Plugin | Release | What it does | Requested host capabilities |
 |---|---:|---|---|
 | [`codec`](#codec-112) | `1.1.2` | Reference plugin that echoes a `u32` | None |
 | [`mysql`](#mysql-021) | `0.2.1` | Stateful typed SQL for SingleStore 5.7 and complete MySQL 8 authentication | Network, named secrets, and entropy |
 | [`s3`](#s3-030) | `0.3.0` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
-| [`parquet`](#parquet-011) | `0.1.1` | Parquet metadata plus typed cell, column, and projected-row reads | None |
+| [`parquet`](#parquet-020) | `0.2.0` | Parquet metadata plus typed cell, column, and projected-row reads with UTC-adjustment semantics | None |
 
 :::note[Declare plugin capabilities in committed scenarios]
 Strict project lint expects each required module in `policy.capabilities`, such
@@ -43,6 +44,7 @@ runtime work end to end. It is not a general-purpose codec library: its current
 interface exports one `echo-u32` function.
 
 ```sh
+sigil plugin install codec@1.1.2
 sigil plugin add codec@1.1.2
 ```
 
@@ -73,6 +75,7 @@ entropy, cancellation, and teardown; the component sees only a logical
 endpoint and the names of specifically granted secrets.
 
 ```sh
+sigil plugin install mysql@0.2.1
 sigil plugin add mysql@0.2.1
 ```
 
@@ -159,6 +162,7 @@ material. Use this release with Sigil 0.33.2 or a compatible newer
 release.
 
 ```sh
+sigil plugin install s3@0.3.0
 sigil plugin add s3@0.3.0
 ```
 
@@ -264,7 +268,9 @@ range, redirect, retry, or fallback operation.
 
 [View the immutable S3 0.3.0 release.](https://github.com/sigil-plugins/s3/releases/tag/v0.3.0)
 
-## Parquet 0.1.1
+<span id="parquet-011"></span>
+
+## Parquet 0.2.0
 
 Parquet accepts a complete file as a binary Lua string, reports flat leaf
 metadata, and reads one typed scalar cell, a bounded column window, or a
@@ -273,8 +279,10 @@ object-store flow composes it with S3 in the scenario, without making either
 plugin depend on the other:
 
 ```sh
+sigil plugin install s3@0.3.0
+sigil plugin install parquet@0.2.0
 sigil plugin add s3@0.3.0
-sigil plugin add parquet@0.1.1
+sigil plugin add parquet@0.2.0
 ```
 
 Use the S3 endpoint grant from the preceding section, then pass the downloaded
@@ -321,20 +329,28 @@ nested, repeated, or unsupported projected columns fail before page decode.
 An out-of-bounds row window returns `not-found` and is never silently clamped
 to a shorter successful result. NULL remains tagged, decimal keeps exact
 precision, scale, and unscaled bytes, and timestamp cells retain their raw
-integer plus unit; the reader never normalizes the value a scenario is trying
-to assert. Required or optional non-repeated scalar columns,
+integer, unit, and `is-adjusted-to-utc` boolean; the reader never normalizes
+the value a scenario is trying to assert. Required or optional non-repeated scalar columns,
 plain or dictionary encoding, and uncompressed or Snappy pages are supported.
 INT96, nanosecond temporal values, external column chunks, and other compression
 codecs fail explicitly. Input is capped at 16 MiB.
 
-[View the immutable Parquet 0.1.1 release.](https://github.com/sigil-plugins/parquet/releases/tag/v0.1.1)
+Version 0.2.0 corrects the WIT shape to preserve Parquet's `isAdjustedToUTC`.
+Structured column metadata returns `is-adjusted-to-utc` as `true` or `false`
+for TIME/TIMESTAMP annotations and `nil` for non-temporal columns. Every time
+or timestamp cell carries the required boolean beside its raw value and unit;
+`false` must not be treated as missing. The existing `logical_type` string
+is unchanged. Regenerate editor stubs when updating the dependency.
+
+[View the immutable Parquet 0.2.0 release.](https://github.com/sigil-plugins/parquet/releases/tag/v0.2.0)
 
 :::note[Direct runs require an explicit named service]
 Deployed PR and baseline lanes resolve S3's reviewed route normally. For a box
 owned by another orchestrator, supply the logical service name explicitly:
-`sigil run scenarios/ --endpoint minio=http://127.0.0.1:PUBLISHED` or pass the
-same `minio` key through `--endpoints-from`. The published port replaces the
-logical `minio:9000` port; a bare primary endpoint is never inferred as plugin
+`sigil run scenarios/ --plugin-route minio:9000=http://127.0.0.1:PUBLISHED` or
+pass a structured `minio` entry with `url` and `logical_port = 9000` through
+`--endpoints-from`. This binds the logical target to the published port;
+a bare primary endpoint is never inferred as plugin
 authority. See [Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
 :::
 

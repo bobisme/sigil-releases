@@ -34,7 +34,7 @@ Use the fixture in `examples/fixture-service/` from the release repo to try the 
 sigil init --service api
 ```
 
-This creates `sigil.toml`, the `.sigil/` state directory, and `scenarios/api/`.
+This creates `.sigil/sigil.toml`, the `.sigil/` state directory, and `scenarios/api/`.
 
 ## 2. Add a scenario
 
