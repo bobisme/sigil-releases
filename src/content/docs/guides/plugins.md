@@ -21,8 +21,10 @@ git add .sigil/sigil.toml .sigil/sigil.plugins.lock .sigil/types/wasm
 
 `plugin install` resolves and verifies the highest stable official Codec release
 into the per-user cache. `plugin add` then writes an **exact** requirement,
-creates the reproducibility lock, and generates the matching LuaLS stub. It does
-not acquire an uncached package. If `.sigil/sigil.toml` does not exist, the
+creates the reproducibility lock, and generates the matching LuaLS stub. If the
+requested package is missing, `add` can perform verified remote acquisition;
+it is not a cache-only command. Explicit install first makes acquisition visible.
+If `.sigil/sigil.toml` does not exist, the
 first official add creates a minimal schema-linked, non-deploying project config.
 Commit all three artifacts.
 
@@ -169,6 +171,12 @@ generic or SigV4 grant cannot break an unrelated scenario. A selected missing
 secret still fails closed and cannot be caught into a passing run. Trusted
 human direct-run output names the exact `--env NAME` to supply; JSON reports,
 eval feedback, and ledger evidence omit both the name and value.
+
+Host API 1.3 adds an alternative [semantic gRPC boundary](/guides/semantic-grpc/)
+under manifest schema 4. Its `grpc-unary` request cannot coexist with raw
+network/secret imports: the host owns routing, credentials, request policy,
+HTTP/2, and deadlines, and the guest names only reviewed aliases. This host
+release does not imply stable Temporal plugin acceptance.
 
 ## Direct runs and named network services
 

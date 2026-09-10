@@ -76,6 +76,57 @@ trusted with host shell access.
 
 Reads from a **strict per-key allowlist**, never the ambient process environment; a key that is not on the allowlist returns `nil`. Under `sigil eval` the allowlist is `[scenario.env]` in `sigil.toml` (literal values or `{ from = "PROCESS_VAR" }` passthroughs, read from the control snapshot); under `sigil run` it is the repeatable `--env KEY[=VALUE]` flag. See [Configuration → `[scenario.env]`](/reference/configuration/#scenarioenv--environment-variables-in-scenarios).
 
+## JSON decoding and structured data
+
+`sigil.json.decode(text, opts?)` parses strict UTF-8 JSON without `exec`, a
+plugin, or an additional capability. Its 2 MiB input ceiling may be lowered
+with `{ max_bytes = 65536 }`, never raised. Duplicate keys, fractional numbers,
+out-of-range signed 64-bit integers, malformed input, and resource-limit
+violations fail explicitly rather than returning a partial or lossy value.
+
+Mappings and sequences are immutable host-owned values, not Lua tables. Empty
+`{}` and `[]` remain distinct. Use ordinary field reads, positive one-based
+sequence indices, `#sequence`, and `ipairs(sequence)`. Missing members return
+`nil`; present JSON null is `sigil.data.null` (`sigil.json.null` is the same
+singleton). Assignment, `pairs`, `rawget`, and `table.*` are not structured-data
+operations. HTTP `res.json` remains a Lua table: decode `res.body` explicitly
+before using these helpers.
+
+```lua
+local data = sigil.json.decode(res.body)
+expect(sigil.data.kind(data.items) == "sequence")
+expect(sigil.data.has(data, "optional_value"))
+expect(data.optional_value == sigil.data.null)
+local items = sigil.data.select(data, '.items[*]')
+local active = sigil.data.where(items, function(item)
+  return item.active == true
+end)
+local names = sigil.data.select(sigil.data.sort(active, '.name'), '.name')
+expect(sigil.data.join(sigil.data.unique(names), ',') == 'alpha,beta')
+```
+
+The bounded, format-neutral API is:
+
+- `kind(value)`: `missing`, `null`, `boolean`, `integer`, `string`, `sequence`, or `mapping`.
+- `get(container, key_or_index)` and `has(container, key_or_index)`: dynamic access without constructing selector text; present null counts as present.
+- `at(value, selector)`: at most one result; `select(value_or_selection, selector)`: an immutable selection, including expansion.
+- `keys(mapping)`: a selection of keys sorted by UTF-8 bytes; `count(sequence_or_selection)`: number of elements.
+- `where(selection, predicate)` and `all(selection, predicate)`: ordinary Lua predicates returning exactly one boolean; `all` on an empty selection is true.
+- `sort(selection, key_selector?)`: stable homogeneous boolean/integer/string sorting; `unique(selection)`: scalar first-occurrence order; `join(selection, separator)`: bounded scalar text, not JSON encoding.
+- `equal(left, right)`: bounded structural equality, including independently decoded containers.
+
+Each name above lives under `sigil.data`. Selectors support only `.field`,
+`["quoted key"]`, `[1]`, and `[*]`; a segment's trailing `?` turns that
+segment's missing member or kind mismatch into no result. There are no pipes,
+predicates, interpolation, recursive descent, or jq expressions. Use Lua for
+computation and `get` for dynamic keys.
+
+The helpers reject arbitrary Lua tables, floats, and unrelated userdata.
+Depth, work, output, and shared structured-data memory ceilings fail closed.
+Decode/query traces retain counts, shape, limits, and digests rather than JSON,
+keys, selector text, or values; explicit scenario logging and attachments
+remain the author's responsibility.
+
 ## `sigil.gen.*`
 
 Deterministic random-value generators. Every factory returns a lazy descriptor:
@@ -173,6 +224,12 @@ Options:
 - `shrink` — disable shrinking with `shrink = false`.
 
 Seeds: `BLAKE3(scenario_seed ‖ invariant_name ‖ case_index)`.
+
+Direct operator runs retain `counterexample.json` for a minimized failure.
+Evaluations and no-sink callers keep structured result evidence without writing
+that sidecar into the caller's checkout; holdout runs never write a plaintext
+counterexample file. Explicit file writes are atomic, and persistence errors
+are reported without replacing the original invariant failure.
 
 ## `sigil.judge(response, opts)`
 

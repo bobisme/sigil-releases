@@ -1376,6 +1376,16 @@
           "default": [
             "github:sigil-plugins/*"
           ]
+        },
+        "grpc-unary": {
+          "description": "Independent source authority for the Host API 1.3 semantic gRPC import.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "github:sigil-plugins/*"
+          ]
         }
       },
       "additionalProperties": false
@@ -1422,6 +1432,13 @@
             "$ref": "#/$defs/PluginSigV4Grant"
           },
           "default": {}
+        },
+        "grpc": {
+          "description": "Host-owned semantic unary gRPC profiles for Host API 1.3.\n\nExecution requires an exact schema-4 project lock, semantic source\npermission, and the exact component import. A profile alone grants no\ncomponent authority; schema 1-3 plugins retain their original host lines.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginGrpcGrant"
+          }
         }
       },
       "additionalProperties": false
@@ -1625,6 +1642,173 @@
       "additionalProperties": false,
       "required": [
         "required"
+      ]
+    },
+    "PluginGrpcGrant": {
+      "description": "Host-owned policy for one semantic unary gRPC profile.",
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "description": "Existing logical endpoint in this plugin's network grant.",
+          "type": "string"
+        },
+        "transport": {
+          "description": "Closed HTTP/2 transport selection.",
+          "$ref": "#/$defs/PluginGrpcTransport"
+        },
+        "authority": {
+          "description": "Exact visible-ASCII `:authority` bytes. The endpoint alone selects the\nphysical socket, so an omitted port stays omitted.",
+          "type": "string"
+        },
+        "bearer_secret": {
+          "description": "Optional environment name for a host-owned opaque bearer credential.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_request_bytes": {
+          "description": "Maximum encoded protobuf request bytes.",
+          "type": "string",
+          "pattern": "^0*[1-9][0-9]*(B|KiB|MiB|GiB)$"
+        },
+        "max_response_bytes": {
+          "description": "Maximum encoded protobuf response bytes.",
+          "type": "string",
+          "pattern": "^0*[1-9][0-9]*(B|KiB|MiB|GiB)$"
+        },
+        "max_call_seconds": {
+          "description": "Whole-call profile deadline. Guest calls may only lower this value.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1
+        },
+        "request_metadata": {
+          "description": "Exact non-secret request metadata owned by the profile.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginGrpcMetadata"
+          },
+          "default": []
+        },
+        "response_metadata": {
+          "description": "Ordinary response metadata names allowed to cross the component\nboundary. Dedicated and protected fields are never valid here.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "request_policy": {
+          "description": "Mandatory application-aware request validation policy.",
+          "$ref": "#/$defs/PluginGrpcRequestPolicy"
+        },
+        "rpcs": {
+          "description": "Closed RPC alias map.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginGrpcRpc"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "endpoint",
+        "transport",
+        "authority",
+        "max_request_bytes",
+        "max_response_bytes",
+        "max_call_seconds",
+        "request_policy",
+        "rpcs"
+      ]
+    },
+    "PluginGrpcTransport": {
+      "description": "Closed semantic unary gRPC transport set.",
+      "type": "string",
+      "enum": [
+        "h2c",
+        "h2-tls"
+      ]
+    },
+    "PluginGrpcMetadata": {
+      "description": "One exact non-secret request metadata field.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "value"
+      ]
+    },
+    "PluginGrpcRequestPolicy": {
+      "description": "Closed request-policy discriminator and its pinned Temporal v0 values.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "namespace": {
+              "type": "string"
+            },
+            "workflow_id_prefix": {
+              "type": "string"
+            },
+            "workflow_type": {
+              "type": "string"
+            },
+            "task_queue": {
+              "type": "string"
+            },
+            "identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "temporal-workflow-v0"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "namespace",
+            "workflow_id_prefix",
+            "workflow_type",
+            "task_queue",
+            "identity"
+          ]
+        }
+      ]
+    },
+    "PluginGrpcRpc": {
+      "description": "One closed RPC alias target.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PluginGrpcRpcKind"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "kind"
+      ]
+    },
+    "PluginGrpcRpcKind": {
+      "description": "Mutation classification used to derive replay authority.",
+      "type": "string",
+      "enum": [
+        "read",
+        "mutation"
       ]
     },
     "PluginRuntimeConfig": {

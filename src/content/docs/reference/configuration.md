@@ -130,8 +130,9 @@ log     = ["github:sigil-plugins/*"]
 ```
 
 Use `sigil plugin install NAME[@VERSION]` followed by `sigil plugin add
-NAME[@VERSION]` for the usual exact dependency workflow. `add` requires the
-package to be present in the per-user cache and does not acquire it. If the
+NAME[@VERSION]` for an explicit acquisition and exact dependency workflow.
+In Sigil 0.35.0, `add` can acquire a missing package through verified remote
+installation, so it is not a cache-only command. If the
 directory has no `.sigil/sigil.toml`, the first official add creates a minimal
 schema-linked config. It updates `[plugins.require]`,
 `.sigil/sigil.plugins.lock`, and the managed
@@ -201,6 +202,27 @@ values must be admitted explicitly; the host validates the canonical request
 against that allowlist before signing or I/O. Continuation-token contents are
 not added to host diagnostics or evidence, though scenario Lua receives a
 returned token and can explicitly log or attach it.
+
+### Semantic gRPC profiles
+
+Sigil 0.35.0 adds manifest schema 4 and Host API 1.3 without changing Host API
+1.0–1.2 imports. A manifest requests `grpc-unary`, while the operator admits
+its source separately:
+
+```toml
+[plugins.trust.capability_allowlist]
+grpc-unary = ["github:sigil-plugins/temporal"]
+```
+
+This allowlist grants neither an endpoint nor an RPC. Profiles under
+`[plugins.grants.<plugin>.grpc.<profile>]` bind a named network endpoint,
+`h2c` or `h2-tls` transport, exact protocol authority, byte/deadline ceilings,
+closed request metadata, RPC aliases, and the `temporal-workflow-v0` request
+policy. Raw network/secret imports cannot coexist with semantic gRPC authority.
+A missing capability allowlist defaults to official sources; `grpc-unary = []`
+denies all. See [semantic gRPC](/guides/semantic-grpc/) for the three supported
+methods, TLS/bearer restrictions, replay rules, and the separate Temporal
+candidate acceptance gate.
 
 ### `[plugins.runtime]`
 

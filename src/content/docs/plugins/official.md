@@ -18,9 +18,10 @@ sigil plugin list-remote
 Install a release into the per-user cache, then add that installed release to
 the project. For the first official plugin in a new directory, `add` creates a
 minimal non-deploying project config; otherwise it preserves the existing
-`.sigil/sigil.toml`. `add` does not acquire uncached packages: it declares the
-exact dependency, writes the reproducibility lock, and generates the matching
-LuaLS stub.
+`.sigil/sigil.toml`. In Sigil 0.35.0, `add` can acquire a missing package through
+verified remote installation before declaring the exact dependency, writing the
+reproducibility lock, and generating the matching LuaLS stub. Explicit install
+first makes acquisition visible and also works with older hosts.
 
 | Plugin | Release | What it does | Requested host capabilities |
 |---|---:|---|---|

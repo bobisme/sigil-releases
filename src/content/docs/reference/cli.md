@@ -195,6 +195,12 @@ allowlists, and effective grants in the supplied config. Only explicitly named
 The command creates no project locks, store selections, evaluations, ledger
 events, attestations, trust changes, or ALLOW decisions.
 
+Semantic gRPC is a separate boundary: the Host API 1.3 adapter requires a
+frozen project owner that `plugin test` cannot supply. Local trust-policy
+allowances do not make a Temporal candidate lockable or authorize this adapter.
+Use an official provenance-bearing candidate and ordinary project execution
+for its integration gate. See [semantic gRPC](/guides/semantic-grpc/).
+
 ## Ledger
 
 ### `sigil ledger list`
@@ -209,7 +215,17 @@ sigil ledger list [--service <svc>] [--kind <kind>] [--since <dur>]
 sigil replay <eval-id>
 ```
 
-Re-execute an eval bit-for-bit from its reproducibility tuple and diff against the stored result.
+Ordinary replay verifies and consumes pinned evidence without executing
+components, selecting secrets, opening service sockets, or deploying a box.
+Use `--live` only when fresh execution is intended. A selected plugin whose
+semantic gRPC profile contains any mutation RPC is refused before deployment,
+even when the scenario intends to call only a read alias. `--live` is not
+mutation authorization.
+
+Replay JSON can include `original_baseline_verdict` and
+`replay_baseline_verdict` independently of PR comparison status. Missing or
+skipped baseline evidence has no verdict; `--pr-only` omits both fields. A PR
+`MATCH` does not establish a fresh baseline pass.
 
 ### `sigil trust show`
 

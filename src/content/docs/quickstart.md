@@ -64,6 +64,11 @@ return {
 }
 ```
 
+For structured JSON assertions, `sigil.json.decode(res.body)` and the
+capability-free [`sigil.data` helpers](/reference/lua-dsl/#json-decoding-and-structured-data)
+provide immutable typed values and bounded traversal without a shell process.
+Ordinary `res.json` field assertions above remain valid.
+
 ## 3. Lint scenarios and generate editor types
 
 ```sh

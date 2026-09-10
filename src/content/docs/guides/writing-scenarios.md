@@ -152,6 +152,11 @@ invariant("email normalization is idempotent", {
 
 Seeds are derived deterministically: `BLAKE3(scenario_seed ‖ invariant_name ‖ case_index)`. On failure, Sigil shrinks the counterexample (ints toward 0, strings toward shorter).
 
+Direct operator runs can write the minimized `counterexample.json`; evaluations
+retain structured evidence without writing into your checkout, and holdout
+runs never create a plaintext sidecar. For JSON selection without `exec`, see
+the [immutable structured-data helpers](/reference/lua-dsl/#json-decoding-and-structured-data).
+
 Generator factories are lazy descriptors. For one deterministic value in
 ordinary `run()` code use `sigil.gen.sample(sigil.gen.uuid())`; direct runners
 accept `--seed <64-hex|auto>` and report the chosen root seed. Sampling uses an

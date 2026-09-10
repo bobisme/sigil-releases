@@ -5,6 +5,25 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.35.0] — 2026-09-10 — Semantic Plugins
+
+Sigil adds bounded structured-data tools and the host-side protocol boundary
+needed by the Temporal plugin candidate. The supporting host release and the
+plugin's real-service acceptance remain separate gates.
+
+- **Decode JSON without a shell or extra capability.** `sigil.json.decode` preserves exact signed 64-bit integers, explicit null, and empty array/object identity in immutable values. Duplicate keys, fractional numbers, malformed input, and resource overruns fail explicitly.
+- **Traverse data without embedding another programming language.** `sigil.data` provides bounded selection, dynamic-key access, structural equality, filtering, sorted keys, and deterministic scalar collection operations. Small selectors handle paths and expansion; ordinary Lua callbacks handle computation. Decode `res.body` first: existing `res.json` Lua tables are not structured-data values.
+- **Semantic gRPC keeps transport authority with the host.** Host API 1.3 and manifest schema 4 add the three admitted Temporal workflow methods. Operator-owned profiles constrain requests, routes, TLS, lazy bearer credentials, deadlines, and byte ceilings; guests receive no credentials or generic RPC authority. Host API 1.0–1.2 remains unchanged.
+- **Replay does not silently authorize mutations.** Ordinary replay verifies pinned evidence without service execution. Live replay refuses a selected semantic profile containing any mutation RPC before deployment, and baseline-verdict fields distinguish the two lanes.
+- **Generated components retain bounded admission.** Core-control nesting has its own 128-frame ceiling while recursive component/type metadata remains capped at 32. Other structural ceilings remain unchanged.
+- **Concurrent work retains its own resources and protection.** Per-evaluation deployment ownership avoids cross-run Compose collisions, while scoped redaction registrations cannot be removed by another operation. Ephemeral port handoff collisions still fail closed.
+- **Counterexamples stay in the right place.** Direct operator runs retain their minimized file artifact, while evaluations keep structured evidence without writing `counterexample.json` into the caller's checkout. Holdout runs never create a plaintext sidecar.
+- **Temporal remains on its candidate track.** This release supplies host support; it does not declare the separate Temporal plugin stable or its real-service replacement gate accepted.
+
+See [structured data](/reference/lua-dsl/#json-decoding-and-structured-data),
+[semantic gRPC](/guides/semantic-grpc/), and
+[replay behavior](/reference/cli/#sigil-replay).
+
 ## [0.34.0] — 2026-09-04 — Plugin Adoption
 
 Sigil makes locked plugins easier to inspect and compose against externally
