@@ -23,12 +23,17 @@ verified remote installation before declaring the exact dependency, writing the
 reproducibility lock, and generating the matching LuaLS stub. Explicit install
 first makes acquisition visible and also works with older hosts.
 
+For an existing project lock and an empty cache, run `sigil plugin sync`
+**before adding or upgrading a dependency**. This restores the other locked
+plugins needed to publish the complete dependency generation.
+
 | Plugin | Release | What it does | Requested host capabilities |
 |---|---:|---|---|
 | [`codec`](#codec-112) | `1.1.2` | Reference plugin that echoes a `u32` | None |
 | [`mysql`](#mysql-021) | `0.2.1` | Stateful typed SQL for SingleStore 5.7 and complete MySQL 8 authentication | Network, named secrets, and entropy |
 | [`s3`](#s3-030) | `0.3.0` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
 | [`parquet`](#parquet-020) | `0.2.0` | Parquet metadata plus typed cell, column, and projected-row reads with UTC-adjustment semantics | None |
+| [`temporal`](#temporal-010) | `0.1.0` | Typed workflow Start, Describe, and caller-paginated History | Host-owned semantic unary gRPC |
 
 :::note[Declare plugin capabilities in committed scenarios]
 Strict project lint expects each required module in `policy.capabilities`, such
@@ -354,6 +359,42 @@ pass a structured `minio` entry with `url` and `logical_port = 9000` through
 a bare primary endpoint is never inferred as plugin
 authority. See [Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
 :::
+
+## Temporal 0.1.0
+
+Temporal provides exactly three WorkflowService operations through
+`require("wasm.temporal")`: `start-workflow-execution`,
+`describe-workflow-execution`, and `get-workflow-execution-history`.
+It requires **Sigil >=0.35.0, <0.36.0**, Host API **1.3.0**, and manifest
+schema 4. It requests `grpc-unary`, not raw network or secret access.
+
+For an existing locked project, restore its pinned packages first:
+
+```sh
+sigil plugin sync
+```
+
+Then install and pin the stable release:
+
+```sh
+sigil plugin install temporal@0.1.0
+sigil plugin add temporal@0.1.0
+sigil plugin sync
+```
+
+Declare `"wasm.temporal"` in each calling scenario's capabilities. The operator
+owns the named profile, RPC aliases, namespace/workflow constraints, route,
+TLS policy, credentials, and transport limits. Each plugin call makes at most
+one host exchange. The plugin never retries, sleeps, reconnects, or follows
+history pages automatically. A Start failure with an unknown mutation outcome
+must not become an automatic retry.
+
+See [Semantic gRPC for Plugins](/guides/semantic-grpc/#temporal-010)
+for operation aliases, request identity, History flags, and timeout ceilings.
+The [Temporal README](https://github.com/sigil-plugins/temporal#readme) provides
+the operator configuration and caller contract.
+
+[View the immutable Temporal 0.1.0 release.](https://github.com/sigil-plugins/temporal/releases/tag/v0.1.0)
 
 ## Commit the dependency generation
 

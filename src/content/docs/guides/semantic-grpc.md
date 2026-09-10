@@ -12,13 +12,46 @@ The host supports exactly three Temporal WorkflowService methods:
 `GetWorkflowExecutionHistory`. This is not a generic gRPC client. Reflection,
 streaming, connection pooling, hidden retries, and mTLS are not supported.
 
-:::caution[Host support is not plugin acceptance]
-The [Temporal plugin repository](https://github.com/sigil-plugins/temporal) is
-on a release-candidate track. Stable plugin promotion requires its separate
-real-service caller-replacement gate. Host qualification or a local component
-harness pass does not certify that gate. Do not replace a locked stable
-dependency with a local archive or widen trust policy to obtain a pass.
+:::note[Use the official stable plugin]
+[Temporal 0.1.0](/plugins/official/#temporal-010) requires
+Sigil **>=0.35.0, <0.36.0** and Host API **1.3.0**. Host support alone does not
+certify every Temporal server or caller workflow. Keep your own service
+acceptance checks. Do not replace a locked dependency with a local archive or
+widen trust policy to obtain a pass.
 :::
+
+## Temporal 0.1.0
+
+The plugin exports three operations with fixed host RPC aliases:
+
+| Lua export | Profile RPC alias | Caller timeout ceiling |
+|---|---|---:|
+| `start-workflow-execution` | `start` | 10,000 ms |
+| `describe-workflow-execution` | `describe` | 10,000 ms |
+| `get-workflow-execution-history` | `history` | 65,000 ms for close-event waiting; 10,000 ms for all-events |
+
+Each request supplies a named `profile` and a positive `timeout-millis` no
+greater than that operation's ceiling. Host profile and scenario deadlines
+can lower the effective timeout further. Grant only the aliases needed by the
+scenario, with their exact WorkflowService paths and read/mutation kinds.
+
+Start requires exactly two ordered `json/plain` payloads and a caller-owned
+`request-id`. Its protobuf identity is fixed to `sigil-temporal@0.1.0`; the
+operator's request policy must match. Describe and History select the latest
+run by `workflow-id`; they do not accept an explicit run ID.
+
+History accepts only these flag combinations:
+
+| `filter` | `wait-new-event` | `skip-archival` | Maximum `timeout-millis` |
+|---|---|---|---:|
+| `"close-event"` | `true` | `true` | 65,000 |
+| `"all-events"` | `false` | `false` | 10,000 |
+
+Each History call returns one page. The caller passes the opaque
+`next-page-token` explicitly to request another page. No operation retries,
+polls, or reconnects internally. See the
+[Temporal README](https://github.com/sigil-plugins/temporal#readme) for the
+operator configuration and full caller contract.
 
 ## Authority belongs to the host
 
@@ -43,8 +76,10 @@ Execution requires all of these independently:
 
 Explicit installation before `plugin add` makes acquisition visible and works
 with older hosts. Sigil 0.35.0's `add` can instead acquire missing packages
-through verified remote installation. After adopting an official candidate,
-run `plugin sync` and inspect its exact
+through verified remote installation. For an existing lock with an empty
+cache, run `sigil plugin sync` **before** adding or upgrading Temporal, so the
+other pinned dependencies are available. Then install and add
+`temporal@0.1.0`, run `plugin sync`, and inspect its exact
 `official-github-provenance-v1` proof tuple. `plugin test --path` cannot supply
 this adapter's frozen project owner, even with a `local:path` allowance.
 
