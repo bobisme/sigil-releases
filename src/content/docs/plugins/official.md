@@ -368,6 +368,10 @@ Temporal provides exactly three WorkflowService operations through
 It requires **Sigil >=0.35.0, <0.36.0**, Host API **1.3.0**, and manifest
 schema 4. It requests `grpc-unary`, not raw network or secret access.
 
+Sigil 0.35.1 adds [operator denial guidance](/guides/semantic-grpc/#diagnose-a-pre-send-denial)
+and recognizes semantic endpoint use in unused-network-grant warnings. These
+host diagnostics do not alter Temporal 0.1.0's immutable compatibility range.
+
 For an existing locked project, restore its pinned packages first:
 
 ```sh

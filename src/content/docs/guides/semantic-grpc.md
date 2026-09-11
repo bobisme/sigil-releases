@@ -1,9 +1,9 @@
 ---
 title: Semantic gRPC for Plugins
-description: Host-owned unary gRPC authority, limits, and replay rules in Sigil 0.35.0.
+description: Host-owned unary gRPC authority, limits, replay rules, and operator diagnostics in Sigil 0.35.1.
 ---
 
-Sigil 0.35.0 supports the additive Host API 1.3 interface
+Since Sigil 0.35.0, the host supports the additive Host API 1.3 interface
 `sigil:host/grpc-unary@1.3.0` under plugin manifest schema 4. Existing schema
 1–3 and Host API 1.0–1.2 imports remain unchanged.
 
@@ -92,6 +92,13 @@ profile freezes its transport, authority, RPC aliases, request policy,
 request/response metadata, and byte/deadline limits. A source allowlist alone
 does not grant a method or create provenance.
 
+In Sigil 0.35.1, unused-network-grant warnings recognize endpoints referenced
+by gRPC and SigV4 profiles, not just raw network capability. Referenced
+endpoints are not reported as unused. Unused extras still produce
+`unused plugin network grants ignored` with an `unused_endpoints` count, never
+endpoint names or targets. This diagnostic does not grant raw guest networking
+or change route admission.
+
 Request metadata is closed, not an arbitrary user-header map: it requires
 `temporal-namespace`, `supported-server-versions`, `caller-type`, `client-name`,
 and `client-version`. Namespace must match the request policy. The other
@@ -112,6 +119,31 @@ its value. Do not also grant it as a raw secret. Credentials are acquired
 lazily only after certificate, SNI, and exact `h2` ALPN verification. An unused
 missing credential does not abort a run; a selected missing one fails closed.
 Bearer credentials over `h2c` are forbidden.
+
+## Diagnose a pre-send denial
+
+Since Sigil 0.35.1, human output from `sigil run` and `sigil scenario run`
+includes a closed operator hint for gRPC authorization failures. Common
+categories point to the constraint to inspect:
+
+| Hint prefix | What to check |
+|---|---|
+| `grpc.profile` | The named profile exists in the plugin's frozen grant. |
+| `grpc.rpc-alias` | The internal alias (`start`, `describe`, or `history`), not the Lua export name, appears in the selected profile's `rpcs` map. |
+| `grpc.request.identity` | `request_policy.identity` matches the plugin's fixed caller identity; do not derive it from the release version. |
+| `grpc.request.history-flags` | Close-event requests use both flags `true`; all-events requests use both `false`, as shown above. |
+
+Only the first failure is reported. Fixing an alias can reveal an independent
+identity mismatch on the next run. Hints never echo request or policy values,
+payload bytes, secrets, or the alias inventory. JSON, ledger, replay, and
+agent-safe feedback omit this private hint.
+
+Guest error kinds remain unchanged: missing grants, profiles, or RPC aliases
+are `denied`; a request-policy violation is `invalid-request`. Both latch
+`PLUGIN_CAPABILITY_DENIED` for the host's authorization operation, and these
+requests are not sent. Do not weaken the grant to obtain a different error or
+retry a Start whose outcome is ambiguous. A caught failure remains sticky and
+cannot be converted into a passing run.
 
 ## Limits and outcomes
 

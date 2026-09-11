@@ -5,6 +5,19 @@ description: Release notes for sigil.
 
 ## Unreleased
 
+## [0.35.1] — 2026-09-10 — Clear Grants
+
+Plugin troubleshooting becomes more precise without changing authorization,
+guest error classification, replay policy, or Host API 1.3. Temporal plugin
+publication and real-caller acceptance remain separate release gates.
+
+- **Understand a denied gRPC call without exposing private values.** Human `sigil run` and `sigil scenario run` output now identifies closed profile, RPC-alias, and request-policy failure categories. The first failure remains sticky and the denied call stays unsent; JSON, ledger, replay, and agent-safe feedback omit the private hint.
+- **Network-grant warnings recognize semantic endpoint use.** Endpoints referenced by gRPC or SigV4 profiles no longer appear unused merely because the plugin lacks raw networking. Unused extras still produce a count-only warning without endpoint names or targets. Routes and raw-capability restrictions are unchanged.
+- **Compatibility tests keep admission separate from certification.** New regressions exercise minimum-only evaluator requirements while retaining independent exact Host API and authority checks. They neither change admission rules nor certify future hosts or widen an existing plugin's immutable manifest.
+
+See [pre-send denial guidance](/guides/semantic-grpc/#diagnose-a-pre-send-denial)
+and [official plugins](/plugins/official/).
+
 ## [0.35.0] — 2026-09-10 — Semantic Plugins
 
 Sigil adds bounded structured-data tools and the host-side protocol boundary
