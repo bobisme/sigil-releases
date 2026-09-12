@@ -13,14 +13,14 @@ The host supports exactly three Temporal WorkflowService methods:
 streaming, connection pooling, hidden retries, and mTLS are not supported.
 
 :::note[Use the official stable plugin]
-[Temporal 0.1.0](/plugins/official/#temporal-010) requires
-Sigil **>=0.35.0, <0.36.0** and Host API **1.3.0**. Host support alone does not
+[Temporal 0.1.1](/plugins/official/#temporal-011) requires
+Sigil **>=0.35.0** and exact Host API **1.3.0**. Host support alone does not
 certify every Temporal server or caller workflow. Keep your own service
 acceptance checks. Do not replace a locked dependency with a local archive or
 widen trust policy to obtain a pass.
 :::
 
-## Temporal 0.1.0
+## Temporal 0.1.1
 
 The plugin exports three operations with fixed host RPC aliases:
 
@@ -50,8 +50,65 @@ History accepts only these flag combinations:
 Each History call returns one page. The caller passes the opaque
 `next-page-token` explicitly to request another page. No operation retries,
 polls, or reconnects internally. See the
-[Temporal README](https://github.com/sigil-plugins/temporal#readme) for the
+[versioned Temporal README](https://github.com/sigil-plugins/temporal/blob/v0.1.1/README.md) for the
 operator configuration and full caller contract.
+
+<span id="temporal-010"></span>
+
+Temporal 0.1.0's immutable manifest still requires `>=0.35.0, <0.36.0`.
+The 0.1.1 minimum-only range removes that minor ceiling, not the exact host
+interface or schema checks. It does not certify an unmeasured future host.
+
+## Project-side Lua companion
+
+Temporal 0.1.1 includes an opt-in
+[Lua companion](https://github.com/sigil-plugins/temporal/blob/v0.1.1/examples/lib/temporal.lua).
+Copy the version-pinned file into your scenario's `lib/temporal.lua` and record
+its hash with the caller change. Official plugin acquisition does not install
+this file. `require("lib.temporal")` callers must declare `wasm.temporal`, even
+when using only its decoder; the standalone `sigil.json.decode` builtin instead
+needs no plugin capability.
+
+| Helper | Contract |
+|---|---|
+| `run(request, options)` | Starts once, then polls Describe; returns the full Describe response (`value.status.number`), not a status string. |
+| `wait_after_start(request, options)` | Polls an already-started workflow without another Start. Only RUNNING and typed post-start NOT_FOUND are retryable. |
+| `history(selector, options)` | Bounded History traversal; derives both flags from the required filter and preserves event order. |
+| `result(selector, options)` | Reads close-event History; distinguishes completed ordered payloads, including an empty list, from `not-completed`. |
+| `decode_json(payload, options)` | Explicitly decodes one `json/plain` payload layer; preserves raw payloads and never guesses a second decoding step. |
+
+Polling requires explicit attempt/interval bounds. History and result require
+explicit page, event, byte and per-call timeout bounds; result takes no filter.
+Repeated tokens and exhausted bounds return helper errors, never partial
+success or a fabricated workflow TIMED_OUT. Byte accounting covers returned
+WIT strings, not process memory or cumulative transport bytes. Set a scenario
+deadline as well: attempts are not elapsed seconds, and host deadlines still win.
+Do not swallow RPC, sleep or checkpoint exceptions. A checkpoint may signal
+cancellation but must not mutate requests or issue RPCs/sleep.
+
+Preserve ordered binary payloads and metadata before interpreting them. An empty
+completed payload list is not missing completion; JSON null is not no payload.
+The decoder preserves exact signed 64-bit integers and empty object/array shape,
+but rejects fractions, out-of-range integers, duplicate keys and malformed JSON.
+Unsupported encoding returns a companion error; builtin JSON failures throw.
+If an application explicitly stores JSON inside a JSON string or field, decode
+that further layer at the application boundary, not automatically.
+
+Handle helper/infrastructure failures before product assertions, and do not
+mask an already-measured non-COMPLETED product outcome with an unnecessary result
+read. Start is never retried. `started=false` has no presence information, and
+successful `effect="applied"` may describe an existing execution, not creation
+by this call. Describe/History still select by workflow ID, not Start's returned
+run ID. See [Start semantics](https://github.com/sigil-plugins/temporal/blob/v0.1.1/docs/start-semantics.md)
+and the [complete helper contract](https://github.com/sigil-plugins/temporal/blob/v0.1.1/docs/lua-companion-design.md).
+
+CAPI accepted the exact 0.1.1-rc.1 package and copied companion on Sigil 0.35.1:
+five profiles, 10 scenarios, 319 unchanged assertions and both expected-RED
+fingerprints. Its supplemental real histories fit in one page; repeated tokens,
+empty completed payloads and cancellation/deadline races were not exercised.
+The later diagnostic addendum did not rerun the full suite. This evidence is
+scoped to that RC and caller adoption, not a separate stable-artifact CAPI run
+or proof that every server/payload shape works.
 
 ## Authority belongs to the host
 
@@ -79,7 +136,7 @@ with older hosts. Sigil 0.35.0's `add` can instead acquire missing packages
 through verified remote installation. For an existing lock with an empty
 cache, run `sigil plugin sync` **before** adding or upgrading Temporal, so the
 other pinned dependencies are available. Then install and add
-`temporal@0.1.0`, run `plugin sync`, and inspect its exact
+`temporal@0.1.1`, run `plugin sync`, and inspect its exact
 `official-github-provenance-v1` proof tuple. `plugin test --path` cannot supply
 this adapter's frozen project owner, even with a `local:path` allowance.
 
@@ -138,12 +195,14 @@ identity mismatch on the next run. Hints never echo request or policy values,
 payload bytes, secrets, or the alias inventory. JSON, ledger, replay, and
 agent-safe feedback omit this private hint.
 
-Guest error kinds remain unchanged: missing grants, profiles, or RPC aliases
-are `denied`; a request-policy violation is `invalid-request`. Both latch
-`PLUGIN_CAPABILITY_DENIED` for the host's authorization operation, and these
-requests are not sent. Do not weaken the grant to obtain a different error or
-retry a Start whose outcome is ambiguous. A caught failure remains sticky and
-cannot be converted into a passing run.
+These pre-send host failures latch `PLUGIN_CAPABILITY_DENIED` for authorization.
+Internal host-to-WASM kinds distinguish `denied` from `invalid-request`; the
+Temporal adapter maps exchange failures to infrastructure/host-failure and the
+sticky host fault throws after export. Do not expect distinct Lua-returned
+kinds for these denials. A malformed RPC alias can instead fail at configuration
+load, before any run report exists; inspect stderr. Human hints are not JSON
+fields. Do not weaken the grant or retry an ambiguous Start. A caught sticky
+failure cannot be converted into a passing run.
 
 ## Limits and outcomes
 

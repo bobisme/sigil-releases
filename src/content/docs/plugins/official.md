@@ -33,7 +33,7 @@ plugins needed to publish the complete dependency generation.
 | [`mysql`](#mysql-021) | `0.2.1` | Stateful typed SQL for SingleStore 5.7 and complete MySQL 8 authentication | Network, named secrets, and entropy |
 | [`s3`](#s3-030) | `0.3.0` | Bounded read-only S3 GET, HEAD, and one caller-driven list page | Network and host-owned SigV4 |
 | [`parquet`](#parquet-020) | `0.2.0` | Parquet metadata plus typed cell, column, and projected-row reads with UTC-adjustment semantics | None |
-| [`temporal`](#temporal-010) | `0.1.0` | Typed workflow Start, Describe, and caller-paginated History | Host-owned semantic unary gRPC |
+| [`temporal`](#temporal-011) | `0.1.1` | Typed workflow Start, Describe, and caller-paginated History | Host-owned semantic unary gRPC |
 
 :::note[Declare plugin capabilities in committed scenarios]
 Strict project lint expects each required module in `policy.capabilities`, such
@@ -360,17 +360,21 @@ a bare primary endpoint is never inferred as plugin
 authority. See [Direct runs and named network services](/guides/plugins/#direct-runs-and-named-network-services).
 :::
 
-## Temporal 0.1.0
+## Temporal 0.1.1
 
 Temporal provides exactly three WorkflowService operations through
 `require("wasm.temporal")`: `start-workflow-execution`,
 `describe-workflow-execution`, and `get-workflow-execution-history`.
-It requires **Sigil >=0.35.0, <0.36.0**, Host API **1.3.0**, and manifest
+It requires **Sigil >=0.35.0**, exact Host API **1.3.0**, and manifest
 schema 4. It requests `grpc-unary`, not raw network or secret access.
+
+The minimum-only Sigil requirement removes the evaluator minor ceiling; it
+does not bypass host-interface checks or certify future hosts. The application
+WIT and fixed Start identity remain `0.1.0` / `sigil-temporal@0.1.0`.
 
 Sigil 0.35.1 adds [operator denial guidance](/guides/semantic-grpc/#diagnose-a-pre-send-denial)
 and recognizes semantic endpoint use in unused-network-grant warnings. These
-host diagnostics do not alter Temporal 0.1.0's immutable compatibility range.
+host diagnostics are distinct from the plugin's compatibility requirement.
 
 For an existing locked project, restore its pinned packages first:
 
@@ -381,8 +385,8 @@ sigil plugin sync
 Then install and pin the stable release:
 
 ```sh
-sigil plugin install temporal@0.1.0
-sigil plugin add temporal@0.1.0
+sigil plugin install temporal@0.1.1
+sigil plugin add temporal@0.1.1
 sigil plugin sync
 ```
 
@@ -393,12 +397,32 @@ one host exchange. The plugin never retries, sleeps, reconnects, or follows
 history pages automatically. A Start failure with an unknown mutation outcome
 must not become an automatic retry.
 
-See [Semantic gRPC for Plugins](/guides/semantic-grpc/#temporal-010)
+See [Semantic gRPC for Plugins](/guides/semantic-grpc/#temporal-011)
 for operation aliases, request identity, History flags, and timeout ceilings.
-The [Temporal README](https://github.com/sigil-plugins/temporal#readme) provides
+The [versioned Temporal README](https://github.com/sigil-plugins/temporal/blob/v0.1.1/README.md) provides
 the operator configuration and caller contract.
 
-[View the immutable Temporal 0.1.0 release.](https://github.com/sigil-plugins/temporal/releases/tag/v0.1.0)
+### Opt-in Lua companion
+
+The [companion source](https://github.com/sigil-plugins/temporal/blob/v0.1.1/examples/lib/temporal.lua)
+is copied project Lua, not another WASM export and not installed by `plugin add`.
+Copy it unchanged into your scenario library as `lib/temporal.lua`, record the
+source version and file hash, and use `require("lib.temporal")`. Every transitive
+caller declares `wasm.temporal`, even for decoder-only use of this module.
+
+It provides `run`, `wait_after_start`, bounded `history`, completion-aware
+`result`, and optional one-layer `decode_json`. Existing `temporal_poll.lua`
+callers are not switched automatically. Preserve the application's status and
+payload representation when adopting it; richer helper returns are not a reason
+to change product assertions. See [helper semantics and limits](/guides/semantic-grpc/#project-side-lua-companion).
+
+[View the immutable Temporal 0.1.1 release.](https://github.com/sigil-plugins/temporal/releases/tag/v0.1.1)
+
+<span id="temporal-010"></span>
+
+The earlier [Temporal 0.1.0 release](https://github.com/sigil-plugins/temporal/releases/tag/v0.1.0)
+retains its immutable `>=0.35.0, <0.36.0` requirement. Installing 0.1.1 does
+not rewrite old packages or locks.
 
 ## Commit the dependency generation
 

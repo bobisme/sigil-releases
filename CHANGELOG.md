@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [Temporal 0.1.1] — 2026-09-12 — Bounded Workflow Helpers
+
+The Temporal plugin gains an opt-in Lua companion and a minimum-only Sigil
+requirement. Its three WASM exports and host-owned authority stay unchanged.
+
+- **Reuse bounded workflow helpers without adding a plugin API.** Copy the version-pinned project Lua companion for one-shot Start plus bounded Describe polling, History traversal, completion payload selection, and explicit one-layer JSON decoding. Page, event and byte limits fail explicitly; exhaustion never becomes a workflow status or partial success.
+- **Keep compatible host upgrades independent of plugin releases.** The manifest requires Sigil `>=0.35.0`, exact Host API `=1.3.0` and schema 4, without the former evaluator minor ceiling. This preserves admission checks; it does not certify unmeasured future hosts.
+- **Preserve payload and Start meaning.** Ordered payload bytes and metadata remain intact, empty completion differs from missing completion, and `effect="applied"` does not prove a newly created execution. Start remains single-shot with a 10-second ceiling; only close-event History permits 65 seconds.
+- **Acceptance belongs to the measured tuple.** CAPI accepted Sigil 0.35.1 with Temporal 0.1.1-rc.1 and the exact copied companion: five profiles, 10 scenarios, 319 unchanged assertions and both frozen expected-RED fingerprints. The addendum confirmed human-only identity guidance and independently checked denied-workflow absence; it did not rerun the full suite. This is RC evidence, not a separate stable-artifact CAPI run.
+
 ## [0.35.1] — 2026-09-10 — Clear Grants
 
 Plugin troubleshooting becomes more precise without changing authorization,
